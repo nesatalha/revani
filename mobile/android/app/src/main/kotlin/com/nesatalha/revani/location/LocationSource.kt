@@ -21,8 +21,11 @@ class LocationSource(
     private val manager = context.getSystemService(LocationManager::class.java)
     private var lastHeading = 0
 
+    private var prev: Location? = null
+
     private val listener = LocationListener { loc: Location ->
-        val speed = if (loc.hasSpeed()) (loc.speed * 3.6f).roundToInt() else 0
+        val speed = (speedMps(loc) * 3.6f).roundToInt()
+        prev = loc
         // Durunca GPS yönü anlamsızlaşıyor, son yön korunur.
         if (loc.hasBearing() && speed >= MIN_SPEED_FOR_HEADING) lastHeading = loc.bearing.roundToInt() % 360
         onFix(speed, lastHeading)
@@ -35,6 +38,18 @@ class LocationSource(
     // İç mekânda GPS yokken haritanın yine de gelmesi için kaba konum (hız vermez).
     private val networkListener = LocationListener { loc: Location ->
         if (System.currentTimeMillis() - lastGpsAt > NETWORK_FALLBACK_AFTER_MS) onPosition(loc.latitude, loc.longitude)
+    }
+
+    /**
+     * GPS hızı; bazı kaynaklar (emülatörün rota oynatması, bazı cihazlar) hız vermez,
+     * o zaman son iki konumdan hesaplanır.
+     */
+    private fun speedMps(loc: Location): Float {
+        if (loc.hasSpeed()) return loc.speed
+        val p = prev ?: return 0f
+        val dt = (loc.elapsedRealtimeNanos - p.elapsedRealtimeNanos) / 1e9f
+        if (dt <= 0.2f || dt > 5f) return 0f
+        return p.distanceTo(loc) / dt
     }
 
     @SuppressLint("MissingPermission") // izin servis başlamadan kontrol ediliyor

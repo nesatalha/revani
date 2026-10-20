@@ -19,3 +19,7 @@ $CONV --font "$TTF" --size 72 --bpp 4 --no-compress --format lvgl --lv-include l
 # Cadde adı ve durum yazıları (Türkçe karakterli)
 $CONV --font "$TTF" --size 30 --bpp 4 --no-compress --format lvgl --lv-include lvgl.h \
   -r 0x20-0x7E -r "$TURKCE" -o revani_font_30.c
+
+# Retro LCD hız rakamları: DSEG7 Classic (OFL-1.1, keshikan). "!" rakam genişliğinde boşluk.
+$CONV --font DSEG7Classic-Bold.ttf --size 60 --bpp 4 --no-compress --format lvgl --lv-include lvgl.h \
+  --symbols "0123456789-!" -o revani_font_lcd.c

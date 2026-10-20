@@ -1,6 +1,7 @@
 #include "ui.h"
 
 #include <lvgl.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -9,12 +10,16 @@
 #include "ui_fonts.h"
 #include "ui_internal.h"
 
-#define OUTER_RING_SIZE (UI_SCREEN_SIZE - 2 * UI_EDGE_MARGIN)
-#define INNER_RING_SIZE (OUTER_RING_SIZE - 2 * (UI_OUTER_RING_WIDTH + UI_INNER_RING_GAP))
+#define DIAL_SIZE (UI_SCREEN_SIZE - 2 * UI_EDGE_MARGIN)
+#define CENTER (UI_SCREEN_SIZE / 2)
 
 typedef struct {
   // Ortak: halkalar ve hız
-  lv_obj_t *speed_ring;
+  lv_obj_t *dial;    // retro analog kadran: çentikler ve 20'şer sayılar
+  lv_obj_t *needle;  // turuncu ibre
+  lv_point_precise_t needle_pts[2];
+  lv_obj_t *speed_panel;  // LCD rakamlı hız kutusu
+  lv_obj_t *speed_ghost;  // sönük "888" segmentleri
   lv_obj_t *speed_value;
   lv_obj_t *speed_unit;
   int32_t speed_x10;  // halkada gösterilen değer (km/h × 10), animasyonla değişir
@@ -94,17 +99,41 @@ static lv_obj_t *make_ring(lv_obj_t *parent, int32_t size, int32_t width, int32_
 
 // ---------------------------------------------------------------- dış halka
 
+// İbreyi kadranın çentik bandına çizer (merkezden değil: ortadaki harita/ok kapanmasın).
+static void set_needle(int32_t speed_x10) {
+  float frac = (float)speed_x10 / (UI_SPEED_MAX_KMH * 10);
+  float a = (UI_RING_START_ANGLE + frac * UI_RING_SWEEP) * 3.14159265f / 180.0f;
+  float c = cosf(a), sn = sinf(a);
+  ui.needle_pts[0].x = CENTER + (int32_t)lroundf(c * UI_NEEDLE_OUTER_R);
+  ui.needle_pts[0].y = CENTER + (int32_t)lroundf(sn * UI_NEEDLE_OUTER_R);
+  ui.needle_pts[1].x = CENTER + (int32_t)lroundf(c * UI_NEEDLE_INNER_R);
+  ui.needle_pts[1].y = CENTER + (int32_t)lroundf(sn * UI_NEEDLE_INNER_R);
+  lv_line_set_points(ui.needle, ui.needle_pts, 2);
+}
+
+// LCD kutusu sağa dayalı 3 hane; "!" DSEG'de rakam genişliğinde boşluk.
+static void set_speed_text(const char *digits) {
+  char buf[4] = "!!!";
+  size_t n = strlen(digits);
+  if (n > 3) n = 3;
+  memcpy(buf + 3 - n, digits, n);
+  lv_label_set_text(ui.speed_value, buf);
+}
+
 static void speed_anim_cb(void *var, int32_t v) {
   LV_UNUSED(var);
   ui.speed_x10 = v;
-  lv_arc_set_value(ui.speed_ring, v);
-  if (ui.gps_ever) lv_label_set_text_fmt(ui.speed_value, "%d", (int)((v + 5) / 10));
+  set_needle(v);
+  if (ui.gps_ever) {
+    char digits[8];
+    snprintf(digits, sizeof digits, "%d", (int)((v + 5) / 10));
+    set_speed_text(digits);
+  }
 }
 
 static void apply_gps_style(void) {
-  uint32_t c = ui.gps_lost ? UI_COLOR_DIM : UI_COLOR_FG;
-  lv_obj_set_style_arc_color(ui.speed_ring, color(c), LV_PART_INDICATOR);
-  lv_obj_set_style_text_color(ui.speed_value, color(c), 0);
+  lv_obj_set_style_line_color(ui.needle, color(ui.gps_lost ? UI_COLOR_DIM : UI_COLOR_NEEDLE), 0);
+  lv_obj_set_style_text_color(ui.speed_value, color(ui.gps_lost ? UI_COLOR_DIM : UI_COLOR_RETRO), 0);
 }
 
 static void gps_watchdog_cb(lv_timer_t *t) {
@@ -112,7 +141,7 @@ static void gps_watchdog_cb(lv_timer_t *t) {
   bool lost = !ui.gps_ever || lv_tick_elaps(ui.gps_last_tick) > UI_GPS_TIMEOUT_MS;
   if (lost != ui.gps_lost) {
     ui.gps_lost = lost;
-    if (lost) lv_anim_delete(ui.speed_ring, speed_anim_cb);  // son değer silik kalır
+    if (lost) lv_anim_delete(ui.needle, speed_anim_cb);  // son değer silik kalır
     apply_gps_style();
   }
 }
@@ -129,15 +158,76 @@ void ui_set_gps(uint8_t speed_kmh, uint16_t heading_deg) {
   }
   gps_watchdog_cb(NULL);
 
-  lv_anim_delete(ui.speed_ring, speed_anim_cb);
+  lv_anim_delete(ui.needle, speed_anim_cb);
   lv_anim_t a;
   lv_anim_init(&a);
-  lv_anim_set_var(&a, ui.speed_ring);
+  lv_anim_set_var(&a, ui.needle);
   lv_anim_set_exec_cb(&a, speed_anim_cb);
   lv_anim_set_values(&a, ui.speed_x10, kmh * 10);
   lv_anim_set_duration(&a, UI_SPEED_ANIM_MS);
   lv_anim_set_path_cb(&a, lv_anim_path_linear);
   lv_anim_start(&a);
+}
+
+// Retro analog kadran: 0–UI_SPEED_MAX_KMH, 5'erli ince, 20'şer kalın çentik ve sayılar.
+static void build_dial(lv_obj_t *parent) {
+  lv_obj_t *d = lv_scale_create(parent);
+  ui.dial = d;
+  lv_obj_set_size(d, DIAL_SIZE, DIAL_SIZE);
+  lv_obj_center(d);
+  lv_scale_set_mode(d, LV_SCALE_MODE_ROUND_INNER);
+  lv_scale_set_range(d, 0, UI_SPEED_MAX_KMH);
+  lv_scale_set_angle_range(d, UI_RING_SWEEP);
+  lv_scale_set_rotation(d, UI_RING_START_ANGLE);
+  lv_scale_set_total_tick_count(d, UI_SPEED_MAX_KMH / 5 + 1);
+  lv_scale_set_major_tick_every(d, 4);
+  lv_scale_set_label_show(d, true);
+  lv_obj_remove_flag(d, LV_OBJ_FLAG_CLICKABLE);
+
+  lv_obj_set_style_arc_width(d, 2, LV_PART_MAIN);
+  lv_obj_set_style_arc_color(d, color(UI_COLOR_RETRO_DIM), LV_PART_MAIN);
+  lv_obj_set_style_length(d, 8, LV_PART_ITEMS);
+  lv_obj_set_style_line_width(d, 2, LV_PART_ITEMS);
+  lv_obj_set_style_line_color(d, color(UI_COLOR_RETRO_DIM), LV_PART_ITEMS);
+  lv_obj_set_style_length(d, 16, LV_PART_INDICATOR);
+  lv_obj_set_style_line_width(d, 4, LV_PART_INDICATOR);
+  lv_obj_set_style_line_color(d, color(UI_COLOR_RETRO), LV_PART_INDICATOR);
+  lv_obj_set_style_text_font(d, &lv_font_montserrat_20, LV_PART_INDICATOR);
+  lv_obj_set_style_text_color(d, color(UI_COLOR_RETRO), LV_PART_INDICATOR);
+
+  ui.needle = lv_line_create(parent);
+  lv_obj_set_pos(ui.needle, 0, 0);
+  lv_obj_set_style_line_width(ui.needle, UI_NEEDLE_WIDTH, 0);
+  lv_obj_set_style_line_rounded(ui.needle, true, 0);
+  set_needle(0);
+}
+
+// Hunter'ın küçük LCD'si gibi: koyu kutu, sönük 888 segmentleri, üstünde açık rakamlar.
+static void build_speed_panel(lv_obj_t *parent) {
+  ui.speed_panel = lv_obj_create(parent);
+  lv_obj_remove_style_all(ui.speed_panel);
+  lv_obj_set_size(ui.speed_panel, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_set_style_bg_color(ui.speed_panel, color(UI_COLOR_LCD_BG), 0);
+  lv_obj_set_style_bg_opa(ui.speed_panel, LV_OPA_COVER, 0);
+  lv_obj_set_style_border_color(ui.speed_panel, color(UI_COLOR_RETRO_DIM), 0);
+  lv_obj_set_style_border_width(ui.speed_panel, 2, 0);
+  lv_obj_set_style_radius(ui.speed_panel, 10, 0);
+  lv_obj_set_style_pad_hor(ui.speed_panel, 10, 0);
+  lv_obj_set_style_pad_ver(ui.speed_panel, 6, 0);
+  lv_obj_align(ui.speed_panel, LV_ALIGN_BOTTOM_MID, 0, -50);
+
+  ui.speed_ghost = make_label(ui.speed_panel, &revani_font_lcd, UI_COLOR_LCD_GHOST);
+  lv_label_set_text(ui.speed_ghost, "888");
+  ui.speed_value = make_label(ui.speed_panel, &revani_font_lcd, UI_COLOR_RETRO);
+  lv_obj_align(ui.speed_value, LV_ALIGN_TOP_LEFT, 0, 0);
+  set_speed_text("--");
+
+  ui.speed_unit = make_label(parent, &lv_font_montserrat_20, UI_COLOR_RETRO_DIM);
+  lv_label_set_text(ui.speed_unit, "km/h");
+  lv_obj_set_style_bg_color(ui.speed_unit, color(UI_COLOR_BG), 0);
+  lv_obj_set_style_radius(ui.speed_unit, 6, 0);
+  lv_obj_set_style_pad_hor(ui.speed_unit, 6, 0);
+  lv_obj_align(ui.speed_unit, LV_ALIGN_BOTTOM_MID, 0, -26);
 }
 
 // ---------------------------------------------------------------- iç halka
@@ -279,7 +369,6 @@ static void set_map_mode(bool on) {
   }
   // Hız haritanın üstüne biniyor: harita varken koyu zemin
   lv_opa_t opa = on ? LV_OPA_70 : LV_OPA_TRANSP;
-  lv_obj_set_style_bg_opa(ui.speed_value, opa, 0);
   lv_obj_set_style_bg_opa(ui.speed_unit, opa, 0);
 }
 
@@ -502,7 +591,7 @@ void ui_init(void) {
   lv_obj_set_style_pad_bottom(ui.dist_unit, 14, 0);  // rakamların taban çizgisine hizala
 
   ui.street = make_label(ui.classic, &revani_font_30, UI_COLOR_YELLOW);
-  lv_obj_set_width(ui.street, 290);
+  lv_obj_set_width(ui.street, 270);  // iç halkanın içinde kalsın
   lv_obj_set_style_text_align(ui.street, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(ui.street, LV_LABEL_LONG_DOT);
   lv_obj_set_height(ui.street, lv_font_get_line_height(&revani_font_30));  // tek satır
@@ -511,25 +600,14 @@ void ui_init(void) {
   build_map_view(ui.nav_page);
 
   // Halkalar ve hız her iki sayfada da görünür
-  ui.speed_ring = make_ring(scr, OUTER_RING_SIZE, UI_OUTER_RING_WIDTH, UI_SPEED_MAX_KMH * 10);
+  build_dial(scr);
 #if UI_INNER_RING_ENABLED
-  ui.dist_ring = make_ring(scr, INNER_RING_SIZE, UI_INNER_RING_WIDTH, UI_INNER_RING_RANGE_M);
+  ui.dist_ring = make_ring(scr, UI_INNER_RING_DIAMETER, UI_INNER_RING_WIDTH, UI_INNER_RING_RANGE_M);
   lv_obj_set_style_arc_color(ui.dist_ring, color(UI_COLOR_TRACK), LV_PART_MAIN);
   lv_obj_add_flag(ui.dist_ring, LV_OBJ_FLAG_HIDDEN);
 #endif
 
-  ui.speed_value = make_label(scr, &lv_font_montserrat_48, UI_COLOR_FG);
-  lv_label_set_text(ui.speed_value, "--");
-  lv_obj_align(ui.speed_value, LV_ALIGN_BOTTOM_MID, 0, -58);
-  ui.speed_unit = make_label(scr, &lv_font_montserrat_20, UI_COLOR_DIM);
-  lv_label_set_text(ui.speed_unit, "km/h");
-  lv_obj_align(ui.speed_unit, LV_ALIGN_BOTTOM_MID, 0, -36);
-  for (int i = 0; i < 2; i++) {  // harita modunda görünen koyu zemin
-    lv_obj_t *l = i ? ui.speed_unit : ui.speed_value;
-    lv_obj_set_style_bg_color(l, color(UI_COLOR_BG), 0);
-    lv_obj_set_style_radius(l, 8, 0);
-    lv_obj_set_style_pad_hor(l, 8, 0);
-  }
+  build_speed_panel(scr);
 
   ui.gps_lost = true;
   apply_gps_style();

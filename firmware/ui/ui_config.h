@@ -18,25 +18,35 @@
 #define UI_COLOR_DIM 0x5A5A5A
 #define UI_COLOR_TRACK 0x1C1C1C
 
+// Retro hız göstergesi (analog kadran + LCD rakamlar)
+#define UI_COLOR_RETRO 0xF2E3C2      // eski kadranların krem rengi
+#define UI_COLOR_RETRO_DIM 0x8C826C
+#define UI_COLOR_NEEDLE 0xFF6A1A     // turuncu ibre
+#define UI_COLOR_LCD_BG 0x0B0B08
+#define UI_COLOR_LCD_GHOST 0x24221A  // sönük segmentler
+
 // Dış halka: GPS hızı
-#define UI_SPEED_MAX_KMH 140
+#define UI_SPEED_MAX_KMH 120
 #define UI_SPEED_MIN_KMH 10        // altı titrer, halka 0'da kalır
 #define UI_SPEED_ANIM_MS 1000      // GPS ~1 Hz; iki değer arası doğrusal dolar
 #define UI_GPS_TIMEOUT_MS 3000     // bu süre GPS gelmezse halka gri
-#define UI_OUTER_RING_WIDTH 20
+#define UI_NEEDLE_OUTER_R 222       // ibre çentik bandının üstünden geçer
+#define UI_NEEDLE_INNER_R 196
+#define UI_NEEDLE_WIDTH 6
 
 // İç halka: dönüşe kalan mesafe
 #define UI_INNER_RING_RANGE_M 500  // son 500 m'de dolar, daha uzaktaysa gizli
 #define UI_INNER_RING_WARN_M 100   // sarıya döner
 #define UI_INNER_RING_TURN_M 15    // dönüş anı: yeşil, yanıp söner
 #define UI_INNER_RING_WIDTH 8
-#define UI_INNER_RING_GAP 8
+#define UI_INNER_RING_DIAMETER 344  // kadran sayılarının içinde
 #define UI_INNER_RING_ANIM_MS 600
 
 // Harita (Faz 2): telefondan gelen kare bu çapa büyütülüp daire içinde gösterilir
-#define UI_MAP_DIAMETER 360
+#define UI_MAP_DIAMETER 328
 #define UI_MAP_TIMEOUT_MS 5000  // bu süre kare gelmezse büyük oklu görünüme dön
 
 // Halkaların açısı: alttan 90° boşluk, saat yönünde 270°
 #define UI_RING_START_ANGLE 135
 #define UI_RING_END_ANGLE 45
+#define UI_RING_SWEEP 270

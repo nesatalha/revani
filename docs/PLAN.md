@@ -40,6 +40,8 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | 1.7.1–1.7.6 tamam. `DashLink` → `BleTransport` oldu, `TcpTransport` eklendi; servis mesajları her ikisine gönderiyor. `adb reverse` telefonda portu hep açık tuttuğu için köprü, simülatörden ilk `STATUS` gelince bağlı sayılıyor. S22 ile ilk deneme: Maps'in "Head northeast / 0 m" bildirimi simülatörde düz ok ve 0 m olarak göründü. |
 | 2026-10-20 | Faz 2 simülatörde: Kotlin `MapRenderer` (MapLibre `MapSnapshotter`, 240×240, JPEG q60, 480 baytlık `MAP_CHUNK` parçaları), firmware'de parça birleştirme + TjpgDec + dairesel harita (ekranda 360 px'e büyütülüyor), üstte ok/mesafe/cadde kutusu, ortada konum işaretçisi. MapTiler anahtarı `mobile/android/secrets.properties` (`maptiler.apiKey`, git dışı); yoksa demo stil. GPS yokken harita merkezi ağ konumundan. Gönderme kuyruğunda NAV/GPS harita parçalarından önce gider. |
 | 2026-10-20 | 2.3.1 için simülatör ön testi (S22 + USB köprüsü, içeride, araç kullanılmadan): gerçek MapTiler haritası simülatörde görünüyor, ok/mesafe/cadde Maps ile aynı; dönüşe 100 m kala ~2.5 kare/sn, kare ~2.6 KB (zoom 17). Hareket hâlinde yön dönmesi ve kare hızı kart ve gerçek sürüşle doğrulanacak. |
+| 2026-10-20 | Hız göstergesi **retro** oldu: dış halka analog kadran (çentikler, 20'şer sayılar, turuncu ibre), hız LCD kutusunda 7 segmentli rakamlarla (DSEG7 Classic, OFL). Ölçek **0–120 km/h** (önce 0–140). İç mesafe halkası kadran sayılarının içine alındı (çap 344), harita çapı 328. |
+| 2026-10-20 | Android emülatörüyle sürüş testi (Medium Phone, API 36, Google Play): Extended Controls → Routes ile Kadıköy–Moda rotası oynatıldı, emülatör USB köprüsüyle simülatöre bağlandı. Maps ön plandayken navigasyon bildirimi yayınlamıyor; emülatörde Maps'e bildirim izni gerekti. Sonuç: ok, mesafe (~1 sn gecikme), cadde, hız (Maps ile ±1 km/h) ve heading-up harita doğru. Emülatör konumu hız vermediği için hız artık son iki konumdan da hesaplanıyor. Eksik şablon yüzünden "hafif sağ" düz ok olarak görünüyordu; hafif sağ ve keskin sağ şablonları eklendi, keskin sol aynalanarak üretildi. |
 
 ---
 
@@ -214,10 +216,12 @@ Ayrıştırıcı `firmware/protocol/` altında; Kotlin (`ProtocolTest`) ve C (`p
 
 ### Dış halka: GPS hızı (OBD gelene kadar)
 
-- Ölçek **0–140 km/h** (Hunter 350'nin son hızı ~110–115 km/h).
+- **Retro tasarım:** Hunter'ın kendi kadranı gibi analog: 5'erli ince, 20'şer kalın çentik ve sayılar (krem rengi), çentik bandında turuncu ibre. Hız sayısı altta LCD kutusunda 7 segmentli rakamlarla (DSEG7), sönük `888` segmentleri arkada görünür.
+
+- Ölçek **0–120 km/h** (Hunter 350'nin son hızı ~110–115 km/h).
 - Hız telefonun GPS'inden gelir, genelde saniyede 1 güncellenir. ESP32 değerler arasını **yumuşak animasyonla** doldurur.
 - **10 km/h altında** GPS hızı titrer: halka 0'da sabit tutulur.
-- **GPS kaybolursa** (tünel, köprü altı) halka gri olur, son değer silik gösterilir.
+- **GPS kaybolursa** (tünel, köprü altı) ibre gri olur, son değer silik gösterilir.
 - GPS hızı motorun göstergesinden %5–10 düşük görünebilir. Bu normal (motor göstergeleri genelde fazla gösterir).
 - **Faz 5'te** dış halka **devir göstergesi** olur, hız ortaya sayı olarak geçer.
 
@@ -239,7 +243,7 @@ Dış halkanın hemen içinde, ince bir halka.
 
 | Faz | İçerik |
 |---|---|
-| Faz 1 | Büyük dönüş oku, mesafe, cadde adı, küçük GPS hızı |
+| Faz 1 | Büyük dönüş oku, mesafe, cadde adı, LCD kutusunda GPS hızı |
 | Faz 2 | Arkada harita, üstünde ok, mesafe ve hız |
 
 ### Tasarım kuralları
@@ -305,7 +309,7 @@ Dış halkanın hemen içinde, ince bir halka.
 - [x] 1.4.5 `Protocol.kt`: mesaj kodlama (NAV, NAV_END, GPS, TIME)
 - [x] 1.4.6 `NavNotificationReader`: `com.google.android.apps.maps` bildirimlerini dinle
 - [x] 1.4.7 Bildirimden mesafe ve cadde adını ayrıştır (uzun adları kısalt: Caddesi → Cd., Sokağı → Sk., Bulvarı → Bulv.)
-- [x] 1.4.8 `ManeuverMatcher`: bildirimin büyük simgesinden manevra tipini çıkar (küçültme + şablon karşılaştırma). Gerçek simgeyle tanınan: düz (rota başı), sağ, hafif sol, sol (`mobile/android/app/src/main/assets/maneuver_templates/`). **Eksik şablonlar sürüş/yürüyüş sırasında toplanacak:** düz, hafif sağ, keskin sağ/sol, U dönüşü, dönel kavşak (çıkışlarıyla), varış. Tanınmayan simgeler telefonda `files/maneuver_icons/` altına kaydediliyor.
+- [x] 1.4.8 `ManeuverMatcher`: bildirimin büyük simgesinden manevra tipini çıkar (küçültme + şablon karşılaştırma). Gerçek simgeyle tanınan: düz (rota başı), hafif sağ/sol, sağ, sol, keskin sağ/sol (`mobile/android/app/src/main/assets/maneuver_templates/`). **Eksik şablonlar:** normal düz, U dönüşü, dönel kavşak (çıkışlarıyla), varış; emülatörde rota oynatarak veya sürüşte toplanacak. Tanınmayan simgeler telefonda `files/maneuver_icons/` altına kaydediliyor.
 - [x] 1.4.9 Navigasyon bildirimi kaybolunca `NAV_END` gönder
 - [x] 1.4.10 `LocationSource`: GPS hızı ve yönü, 1 Hz `GPS` mesajı
 - [x] 1.4.11 Bağlanınca `TIME` gönder
