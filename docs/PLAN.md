@@ -29,7 +29,6 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Plan oluşturuldu. Mimari: Flutter arayüz + Kotlin servis. |
 | 2026-10-20 | Dış halka OBD gelene kadar **GPS hızını** gösterecek. Dönüşe kalan mesafe **ince iç halkaya** taşındı. İç halkanın gerekli olup olmadığına yol testinde karar verilecek (adım 1.6.5). |
 | 2026-10-20 | Paket adı `com.nesatalha.revani` olarak belirlendi. `sdl2`, `cmake` ve PlatformIO Core (CLI) Homebrew ile kuruldu. VS Code şu an `~/Downloads` içinde; `/Applications`'a taşıyıp PlatformIO eklentisini kurmak isteğe bağlı (CLI derleme için yeterli). `flutter doctor`: Android lisansları kabul edilmemiş (`flutter doctor --android-licenses`). |
-
 | 2026-10-20 | BLE UUID'leri üretildi (bölüm 4). Firmware: PlatformIO `espressif32@6.9.0` + Arduino, LVGL **9.2.2** (kart ve simülatörde aynı sürüm), NimBLE-Arduino 2.x. |
 | 2026-10-20 | Faz 1.1 simülatörde tamamlandı (`firmware/simulator/`, SDL2 + CMake). Türkçe karakterli fontlar Montserrat Medium'dan üretildi (`firmware/ui/fonts/generate.sh`). İç halka `firmware/ui/ui_config.h` içindeki `UI_INNER_RING_ENABLED` ile tek satırda kapatılabilir (1.6.5 için). Cadde adı ekranda tek satır, sığmazsa "…" ile kesiliyor; bu yüzden 1.4.7'ye kısaltma eklendi. |
 
