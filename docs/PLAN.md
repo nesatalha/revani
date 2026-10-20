@@ -14,7 +14,7 @@
 | Faz | Durum | Tamamlanan |
 |---|---|---|
 | Faz 0: Hazırlık | 🟨 Devam ediyor | 9 / 10 |
-| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 27 / 43 |
+| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 33 / 43 |
 | Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
@@ -36,8 +36,9 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | 1.3 ESP32 BLE yazıldı (NimBLE, kuyruk, STATUS her 10 sn ve abone olununca, kopunca bekleme ekranı ve yeniden yayın). Ayrıştırıcı ortak `firmware/protocol/` klasöründe, simülatörde C testleri ve ham paket sahneleriyle (`ble`, `ble-end`) doğrulandı. **Kart olmadığı için gerçek BLE denenmedi**, sadece `pio run` ile derleniyor. 1.3.4 açık: pil ölçümü yok. |
 | 2026-10-20 | Test telefonu: Samsung Galaxy S22 (SM-S901E), Android 15. USB hata ayıklama açık, debug APK kuruldu. |
 | 2026-10-20 | S22'de gerçek cihaz testi. Servis foreground (connectedDevice + location) başlıyor, ekran kapalı 2 dk sonra da çalışıyor. **Google Maps bildirimi:** başlık mesafe (`50 m`), metin sadece cadde (`Abdibey Sok.`), `toward …` veya `Head northeast`, alt metin `20 min · 14 km · 22:15 ETA`. Metinde manevra yok, ok yalnız simgeden (108×108) çıkıyor. 4 simge şablon olarak eklendi, canlı eşleşme doğrulandı (sağ, sol). **Güç tasarrufu** açıkken Samsung ekran kapanınca GPS'i kapatıyor (`GPS_DISABLED_WHEN_SCREEN_OFF`); uygulama ana ekranda uyarı gösteriyor, sürüşte kapalı olmalı. BLE ve 1.6 testleri kart bekliyor. |
-
 | 2026-10-20 | Yeni adım grubu **1.7 USB köprüsü**: telefon aynı protokol baytlarını BLE yerine `adb reverse` üzerinden TCP ile Mac'teki LVGL simülatörüne gönderecek. Amaç Faz 1 ve Faz 2'yi kart gelmeden gerçek veriyle test etmek. Protokol değişmiyor, TCP'de sadece uzunluk öneki (çerçeveleme) var. |
+| 2026-10-20 | 1.7.1–1.7.6 tamam. `DashLink` → `BleTransport` oldu, `TcpTransport` eklendi; servis mesajları her ikisine gönderiyor. `adb reverse` telefonda portu hep açık tuttuğu için köprü, simülatörden ilk `STATUS` gelince bağlı sayılıyor. S22 ile ilk deneme: Maps'in "Head northeast / 0 m" bildirimi simülatörde düz ok ve 0 m olarak göründü. |
+
 ---
 
 ## İçindekiler
@@ -110,7 +111,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 │  FLUTTER (lib/)                           KOTLIN (android/app/src/main/kotlin)│
 │  ┌──────────────────────────┐             ┌───────────────────────────────┐ │
 │  │ • ana ekran / durum      │ MethodChannel│ RevaniService (foreground)   │ │
-│  │ • cihaz eşleştirme       │ ───────────▶ │ • DashLink        (BLE)      │ │
+│  │ • cihaz eşleştirme       │ ───────────▶ │ • BleTransport    (BLE)      │ │
 │  │ • izin akışları          │  komutlar    │ • NavNotificationReader      │ │
 │  │ • ayarlar                │              │ • LocationSource  (GPS)      │ │
 │  │ • canlı debug ekranı     │ EventChannel │ • MapRenderer     (Faz 2)    │ │
@@ -152,7 +153,9 @@ revani/
 │   └── android/app/src/main/kotlin/com/nesatalha/revani/
 │       ├── MainActivity.kt      # kanalları kaydeder
 │       ├── RevaniService.kt     # foreground service
-│       ├── ble/DashLink.kt
+│       ├── ble/BleTransport.kt  # BLE (kart)
+│       ├── link/DashTransport.kt # ortak arayüz, gönderme kuyruğu
+│       ├── link/TcpTransport.kt # USB köprüsü (1.7)
 │       ├── ble/Protocol.kt      # mesaj kodlama (bölüm 4)
 │       ├── nav/NavNotificationReader.kt
 │       ├── nav/ManeuverMatcher.kt
@@ -334,15 +337,16 @@ Telefondaki uygulama, BLE'ye gönderdiği **aynı mesaj baytlarını** USB kablo
                                                                └─ firmware/ui/ (karttakiyle aynı)
 ```
 
+- **Çalıştırma:** telefonu USB ile bağla, `firmware/simulator/bridge.sh`, telefonda Ayarlar → **Simülatöre gönder** ve servis açık. Ekran görüntüsü: `pkill -USR1 revani_sim` → `firmware/simulator/build/bridge.bmp`.
 - **Çerçeveleme:** TCP akış olduğu için her mesajın önüne `u16 uzunluk` (little-endian) eklenir. Mesajın kendisi bölüm 4'teki ile birebir aynı.
 - Kart gelince BLE ile aynı kod yolu kullanılır. Köprü sadece geliştirme ve test içindir.
 
-- [ ] 1.7.1 Kotlin: `DashTransport` arayüzü; mevcut BLE bağlantısı `BleTransport` olarak bu arayüze taşınır
-- [ ] 1.7.2 Kotlin: `TcpTransport` (localhost:7878, uzunluk önekli çerçeve, kopunca yeniden bağlanma)
-- [ ] 1.7.3 Flutter ayarlar: "Simülatöre gönder" seçeneği ve köprü bağlantı durumu
-- [ ] 1.7.4 Simülatör: TCP sunucusu, gelen çerçeveleri ortak ayrıştırıcıya ve kuyruğa verir
-- [ ] 1.7.5 Simülatör: `STATUS` mesajını TCP üzerinden geri gönderir (sahte pil)
-- [ ] 1.7.6 Tek komutla çalıştırma betiği (`adb reverse` + simülatör)
+- [x] 1.7.1 Kotlin: `DashTransport` arayüzü; mevcut BLE bağlantısı `BleTransport` olarak bu arayüze taşınır
+- [x] 1.7.2 Kotlin: `TcpTransport` (localhost:7878, uzunluk önekli çerçeve, kopunca yeniden bağlanma)
+- [x] 1.7.3 Flutter ayarlar: "Simülatöre gönder" seçeneği ve köprü bağlantı durumu
+- [x] 1.7.4 Simülatör: TCP sunucusu, gelen çerçeveleri ortak ayrıştırıcıya ve kuyruğa verir
+- [x] 1.7.5 Simülatör: `STATUS` mesajını TCP üzerinden geri gönderir (sahte pil)
+- [x] 1.7.6 Tek komutla çalıştırma betiği (`adb reverse` + simülatör)
 - [ ] 1.7.7 Ön test: gerçek Google Maps rotasında simülatörde ok, mesafe, cadde ve hız doğru görünüyor
 
 > 1.6 testleri kart ve gerçek BLE ister. Köprüyle yapılan ön testler 1.6'yı işaretlemez, sonuçları değişiklik günlüğüne yazılır.
