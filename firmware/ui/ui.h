@@ -52,6 +52,7 @@ typedef enum {
   UI_MAP_LAYOUT_TOP = 0,   // üstte yatay kutu
   UI_MAP_LAYOUT_LEFT = 1,  // solda dar sütun, cadde üstte şerit
   UI_MAP_LAYOUT_RIGHT = 2,
+  UI_MAP_LAYOUT_BOTTOM = 3,  // altta: ok/mesafe/cadde küçük hız kutusunun üstünde
 } ui_map_layout_t;
 
 void ui_map_set_layout(ui_map_layout_t layout);

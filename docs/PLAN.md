@@ -44,6 +44,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Android emülatörüyle sürüş testi (Medium Phone, API 36, Google Play): Extended Controls → Routes ile Kadıköy–Moda rotası oynatıldı, emülatör USB köprüsüyle simülatöre bağlandı. Maps ön plandayken navigasyon bildirimi yayınlamıyor; emülatörde Maps'e bildirim izni gerekti. Sonuç: ok, mesafe (~1 sn gecikme), cadde, hız (Maps ile ±1 km/h) ve heading-up harita doğru. Emülatör konumu hız vermediği için hız artık son iki konumdan da hesaplanıyor. Eksik şablon yüzünden "hafif sağ" düz ok olarak görünüyordu; hafif sağ ve keskin sağ şablonları eklendi, keskin sol aynalanarak üretildi. |
 | 2026-10-20 | Kullanıcı geri bildirimiyle: zoom bir kademe düştü (16 → 14.5); ibre ince çizgi yerine eğri başlı kama oldu; konum işaretçisi merkezin %15 altına indi (telefon kamerayı gidiş yönünde ileri kaydırıyor), önümüzdeki yol daha çok görünüyor. Emülatör sürüşünde doğrulandı. |
 | 2026-10-20 | İbre canlı kırmızı; konum işaretçisi merkezin %22 altına indi; harita üstündeki ok/mesafe kutusu ve cadde şeridi yarı saydam (%50). Kutunun yeri seçilebilir: üstte (varsayılan) veya solda/sağda dar sütun (cadde üstte şerit), `ui_map_set_layout()` / simülatörde `--layout`. Kullanıcı seçimi bekleniyor. Konumdan hesaplanan hız 160 km/h'yi geçerse sıçrama sayılıp atılıyor. |
+| 2026-10-20 | Harita yerleşimi kullanıcının seçtiği **alt** düzen oldu (varsayılan): ekranın üstü tamamen harita; ok + mesafe ve cadde alttaki yarı saydam kutuda, hız kutusu harita modunda küçülüp (DSEG7 40 px) en altta. Konum işaretçisi bu grubun hemen üstünde (merkezin %8 altı, telefon kamerayı aynı oranda kaydırıyor). Üst/sol/sağ yerleşimler `ui_map_set_layout()` ile hâlâ seçilebilir. |
 
 ---
 
@@ -246,7 +247,7 @@ Dış halkanın hemen içinde, ince bir halka.
 | Faz | İçerik |
 |---|---|
 | Faz 1 | Büyük dönüş oku, mesafe, cadde adı, LCD kutusunda GPS hızı |
-| Faz 2 | Arkada harita, üstünde ok, mesafe ve hız |
+| Faz 2 | Üstte harita (yön yukarıda, konum alt kısımda); altta ok, mesafe, cadde ve küçük LCD hız |
 
 ### Tasarım kuralları
 

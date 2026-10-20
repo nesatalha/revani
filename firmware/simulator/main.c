@@ -1,7 +1,7 @@
 // Revani LVGL simülatörü (macOS, SDL2).
 //
 //   revani_sim [--speed N]                      pencerede sahte veriyle çalışır
-//   revani_sim --bridge [--port 7878] [--shot out.bmp] [--layout top|left|right]
+//   revani_sim --bridge [--port 7878] [--shot out.bmp] [--layout bottom|top|left|right]
 //                                               telefondan USB köprüsüyle gerçek veri (1.7);
 //                                               `kill -USR1 <pid>` ekran görüntüsünü out.bmp'ye yazar
 //   revani_sim --shot out.bmp [--scene S] [--ms N]
@@ -262,7 +262,10 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[i], "--jpeg") && i + 1 < argc) jpeg_path = argv[++i];
     else if (!strcmp(argv[i], "--layout") && i + 1 < argc) {
       const char *l = argv[++i];
-      map_layout = !strcmp(l, "left") ? UI_MAP_LAYOUT_LEFT : !strcmp(l, "right") ? UI_MAP_LAYOUT_RIGHT : UI_MAP_LAYOUT_TOP;
+      map_layout = !strcmp(l, "left")    ? UI_MAP_LAYOUT_LEFT
+                   : !strcmp(l, "right") ? UI_MAP_LAYOUT_RIGHT
+                   : !strcmp(l, "top")   ? UI_MAP_LAYOUT_TOP
+                                         : UI_MAP_LAYOUT_BOTTOM;
     }
     else {
       fprintf(stderr,
