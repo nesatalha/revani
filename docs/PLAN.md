@@ -14,7 +14,7 @@
 | Faz | Durum | Tamamlanan |
 |---|---|---|
 | Faz 0: Hazırlık | 🟨 Devam ediyor | 9 / 10 |
-| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 33 / 43 |
+| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 34 / 43 |
 | Faz 2: Ortaya harita | 🟨 Devam ediyor | 12 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
@@ -353,7 +353,7 @@ Telefondaki uygulama, BLE'ye gönderdiği **aynı mesaj baytlarını** USB kablo
 - [x] 1.7.4 Simülatör: TCP sunucusu, gelen çerçeveleri ortak ayrıştırıcıya ve kuyruğa verir
 - [x] 1.7.5 Simülatör: `STATUS` mesajını TCP üzerinden geri gönderir (sahte pil)
 - [x] 1.7.6 Tek komutla çalıştırma betiği (`adb reverse` + simülatör)
-- [ ] 1.7.7 Ön test: gerçek Google Maps rotasında simülatörde ok, mesafe, cadde ve hız doğru görünüyor
+- [x] 1.7.7 Ön test: gerçek Google Maps rotasında simülatörde ok, mesafe, cadde ve hız doğru görünüyor (Android emülatöründe Google Maps + oynatılan rota ile; telefon masada hareket edemediği için)
 
 > 1.6 testleri kart ve gerçek BLE ister. Köprüyle yapılan ön testler 1.6'yı işaretlemez, sonuçları değişiklik günlüğüne yazılır.
 
