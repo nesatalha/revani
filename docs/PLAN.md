@@ -14,7 +14,7 @@
 | Faz | Durum | Tamamlanan |
 |---|---|---|
 | Faz 0: Hazırlık | 🟨 Devam ediyor | 8 / 10 |
-| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 7 / 36 |
+| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 17 / 36 |
 | Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
@@ -31,6 +31,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Paket adı `com.nesatalha.revani` olarak belirlendi. `sdl2`, `cmake` ve PlatformIO Core (CLI) Homebrew ile kuruldu. VS Code şu an `~/Downloads` içinde; `/Applications`'a taşıyıp PlatformIO eklentisini kurmak isteğe bağlı (CLI derleme için yeterli). `flutter doctor`: Android lisansları kabul edilmemiş (`flutter doctor --android-licenses`). |
 | 2026-10-20 | BLE UUID'leri üretildi (bölüm 4). Firmware: PlatformIO `espressif32@6.9.0` + Arduino, LVGL **9.2.2** (kart ve simülatörde aynı sürüm), NimBLE-Arduino 2.x. |
 | 2026-10-20 | Faz 1.1 simülatörde tamamlandı (`firmware/simulator/`, SDL2 + CMake). Türkçe karakterli fontlar Montserrat Medium'dan üretildi (`firmware/ui/fonts/generate.sh`). İç halka `firmware/ui/ui_config.h` içindeki `UI_INNER_RING_ENABLED` ile tek satırda kapatılabilir (1.6.5 için). Cadde adı ekranda tek satır, sığmazsa "…" ile kesiliyor; bu yüzden 1.4.7'ye kısaltma eklendi. |
+| 2026-10-20 | 1.4 Kotlin servisi yazıldı; JVM birim testleri (protokol, bildirim ayrıştırma, kısaltma, simge eşleştirme) geçiyor. **Telefon hazır olmadığı için (0.6) cihazda denenmedi**: 1.4.x adımları derlenip birim testleri geçtiği için işaretlendi, gerçek doğrulama 1.6 testlerinde. Bildirim metni biçimleri tahmini, 1.6.1'de gerçek örneklerle testler genişletilecek. `minSdk` 26. Konum için Play Services yerine `LocationManager`. |
 
 ---
 
@@ -285,17 +286,17 @@ Dış halkanın hemen içinde, ince bir halka.
 
 ### 1.4 Kotlin servisi
 
-- [ ] 1.4.1 `RevaniService`: foreground service, kalıcı bildirim
-- [ ] 1.4.2 Pil optimizasyonu muafiyeti isteği
-- [ ] 1.4.3 `DashLink`: UUID ile tarama, bağlanma, MTU/PHY ayarları
-- [ ] 1.4.4 `DashLink`: kopunca üstel beklemeyle yeniden bağlanma
-- [ ] 1.4.5 `Protocol.kt`: mesaj kodlama (NAV, NAV_END, GPS, TIME)
-- [ ] 1.4.6 `NavNotificationReader`: `com.google.android.apps.maps` bildirimlerini dinle
-- [ ] 1.4.7 Bildirimden mesafe ve cadde adını ayrıştır (uzun adları kısalt: Caddesi → Cd., Sokağı → Sk., Bulvarı → Bulv.)
-- [ ] 1.4.8 `ManeuverMatcher`: bildirimin büyük simgesinden manevra tipini çıkar (küçültme + şablon karşılaştırma)
-- [ ] 1.4.9 Navigasyon bildirimi kaybolunca `NAV_END` gönder
-- [ ] 1.4.10 `LocationSource`: GPS hızı ve yönü, 1 Hz `GPS` mesajı
-- [ ] 1.4.11 Bağlanınca `TIME` gönder
+- [x] 1.4.1 `RevaniService`: foreground service, kalıcı bildirim
+- [x] 1.4.2 Pil optimizasyonu muafiyeti isteği
+- [x] 1.4.3 `DashLink`: UUID ile tarama, bağlanma, MTU/PHY ayarları
+- [x] 1.4.4 `DashLink`: kopunca üstel beklemeyle yeniden bağlanma
+- [x] 1.4.5 `Protocol.kt`: mesaj kodlama (NAV, NAV_END, GPS, TIME)
+- [x] 1.4.6 `NavNotificationReader`: `com.google.android.apps.maps` bildirimlerini dinle
+- [x] 1.4.7 Bildirimden mesafe ve cadde adını ayrıştır (uzun adları kısalt: Caddesi → Cd., Sokağı → Sk., Bulvarı → Bulv.)
+- [ ] 1.4.8 `ManeuverMatcher`: bildirimin büyük simgesinden manevra tipini çıkar (küçültme + şablon karşılaştırma). Altyapı hazır; **şablonlar gerçek cihazdan toplanacak**: tanınmayan simgeler uygulamanın `files/maneuver_icons/` klasörüne kaydediliyor, etiketlenip `assets/maneuver_templates/<kod>_<çıkış>_<ad>.png` olarak eklenecek. O zamana kadar manevra bildirim metninden çıkarılıyor.
+- [x] 1.4.9 Navigasyon bildirimi kaybolunca `NAV_END` gönder
+- [x] 1.4.10 `LocationSource`: GPS hızı ve yönü, 1 Hz `GPS` mesajı
+- [x] 1.4.11 Bağlanınca `TIME` gönder
 
 ### 1.5 Flutter arayüzü
 
