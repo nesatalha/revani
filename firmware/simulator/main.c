@@ -7,7 +7,7 @@
 //   revani_sim --shot out.bmp [--scene S] [--ms N]
 //                                               penceresiz çizer, ekran görüntüsü yazar
 //
-// Sahneler: idle, connected, nav, near, turn, far, gps-lost, arrows, fake, ble
+// Sahneler: idle, connected, nav, near, turn, far, gps-lost, arrows, fake, ble, map (--jpeg dosya.jpg)
 
 #include <lvgl.h>
 #include <signal.h>
@@ -18,11 +18,13 @@
 #include <unistd.h>
 
 #include "bridge.h"
+#include "protocol.h"
 #include "screenshot.h"
 #include "ui.h"
 #include "ui_arrows.h"
 #include "ui_config.h"
 #include "ui_fake.h"
+#include "ui_map.h"
 #include "ui_proto.h"
 
 #define W UI_SCREEN_SIZE
@@ -97,6 +99,36 @@ static void scene_arrows(void) {
   lv_screen_load(scr);
 }
 
+// JPEG dosyasını MAP_CHUNK paketlerine bölüp ayrıştırıcıdan geçirir (telefonun yapacağı gibi).
+static void feed_jpeg(const char *path, uint16_t frame) {
+  FILE *f = fopen(path, "rb");
+  if (!f) {
+    perror(path);
+    return;
+  }
+  static uint8_t jpeg[UI_MAP_MAX_JPEG];
+  size_t len = fread(jpeg, 1, sizeof jpeg, f);
+  fclose(f);
+  uint16_t count = (uint16_t)((len + PROTO_MAP_CHUNK_DATA - 1) / PROTO_MAP_CHUNK_DATA);
+  for (uint16_t i = 0; i < count; i++) {
+    uint8_t msg[7 + PROTO_MAP_CHUNK_DATA];
+    size_t n = len - (size_t)i * PROTO_MAP_CHUNK_DATA;
+    if (n > PROTO_MAP_CHUNK_DATA) n = PROTO_MAP_CHUNK_DATA;
+    msg[0] = PROTO_MAP_CHUNK;
+    msg[1] = frame & 0xFF, msg[2] = frame >> 8;
+    msg[3] = i & 0xFF, msg[4] = i >> 8;
+    msg[5] = count & 0xFF, msg[6] = count >> 8;
+    memcpy(&msg[7], &jpeg[(size_t)i * PROTO_MAP_CHUNK_DATA], n);
+    proto_result_t r = ui_proto_handle(msg, 7 + n);
+    if (r != PROTO_OK) fprintf(stderr, "parça %u: %s\n", i, proto_result_str(r));
+  }
+  const ui_map_stats_t *st = ui_map_stats();
+  printf("harita: %zu bayt, %u parça, çözülen %u, atlanan %u, çözme %u ms\n", len, count,
+         (unsigned)st->frames_ok, (unsigned)st->frames_dropped, (unsigned)st->last_decode_ms);
+}
+
+static const char *jpeg_path;
+
 static int headless(const char *out, const char *scene, uint32_t ms) {
   lv_tick_set_cb(fake_tick);
   lv_display_t *disp = lv_display_create(W, H);
@@ -152,6 +184,10 @@ static int headless(const char *out, const char *scene, uint32_t ms) {
     ui_proto_handle(nav_msg, sizeof nav_msg);
     run_for(500);
     ui_proto_handle(end_msg, sizeof end_msg);
+  } else if (!strcmp(scene, "map")) {
+    ui_proto_init();
+    scene_nav(UI_MANEUVER_RIGHT, 0, 180, "Bağdat Cd.", 47);
+    if (jpeg_path) feed_jpeg(jpeg_path, 1);
   } else if (!strcmp(scene, "fake")) {
     ui_fake_start(1);
   } else {
@@ -220,6 +256,7 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[i], "--speed") && i + 1 < argc) speedup = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--bridge")) bridge_port = bridge_port ? bridge_port : BRIDGE_DEFAULT_PORT;
     else if (!strcmp(argv[i], "--port") && i + 1 < argc) bridge_port = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "--jpeg") && i + 1 < argc) jpeg_path = argv[++i];
     else {
       fprintf(stderr,
               "Kullanım: %s [--speed N] | --bridge [--port P] [--shot out.bmp] |"

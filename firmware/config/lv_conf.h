@@ -23,6 +23,9 @@
 
 #define LV_DEF_REFR_PERIOD 20
 
+// Harita karesi JPEG (Faz 2); çözme ui/ui_map.c'de doğrudan TJpgDec ile
+#define LV_USE_TJPGD 1
+
 #define LV_FONT_MONTSERRAT_14 1
 #define LV_FONT_MONTSERRAT_20 1
 #define LV_FONT_MONTSERRAT_48 1

@@ -3,6 +3,7 @@
 #include <lvgl.h>
 
 #include "ui.h"
+#include "ui_map.h"
 
 static struct {
   bool time_valid;
@@ -52,7 +53,13 @@ static void on_time(uint32_t unix_time, int16_t offset_min, void *ctx) {
   clock_cb(NULL);
 }
 
-static const proto_handlers_t handlers = {on_nav, on_nav_end, on_gps, on_time, NULL};
+static void on_map_chunk(uint16_t frame, uint16_t chunk, uint16_t count, const uint8_t *data, size_t len,
+                         void *ctx) {
+  LV_UNUSED(ctx);
+  ui_map_chunk(frame, chunk, count, data, len);
+}
+
+static const proto_handlers_t handlers = {on_nav, on_nav_end, on_gps, on_time, on_map_chunk, NULL};
 
 void ui_proto_init(void) {
   lv_timer_create(clock_cb, 1000, NULL);

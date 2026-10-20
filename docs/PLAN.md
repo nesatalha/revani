@@ -192,7 +192,7 @@ UUID'ler firmware'de `firmware/src/ble_uuids.h` içinde; Kotlin tarafında da ay
 |---|---|---|---|
 | `0x01` | TELEMETRY | `u16 rpm, u8 hız, i8 sıcaklık, u8 gaz, u16 akü_mV, u8 bayraklar` | 5 |
 | `0x02` | NAV | `u8 manevra, u8 kavşak_çıkışı, u16 mesafe_m, u16 varış_dk, u8 uzunluk, utf8 cadde` | 1 |
-| `0x03` | MAP_CHUNK | `u16 kare_no, u16 parça_no, u16 parça_sayısı, veri` | 2 |
+| `0x03` | MAP_CHUNK | `u16 kare_no, u16 parça_no, u16 parça_sayısı, veri` (sonuncu hariç her parçada tam 480 bayt JPEG) | 2 |
 | `0x04` | NOTIFICATION | `u8 uygulama, u8 len, başlık` | 4 |
 | `0x05` | MEDIA | `u8 çalıyor_mu, u8 len, şarkı, u8 len, sanatçı` | 4 |
 | `0x06` | CALL | `u8 durum, u8 len, arayan` | 4 |

@@ -48,7 +48,8 @@ class TxCallbacks : public NimBLECharacteristicCallbacks {
 };
 
 void ble_link_begin(const char *name) {
-  queue = xQueueCreate(16, sizeof(BleEvent));
+  // Bir harita karesi (~20–30 parça) ana döngü işleyene kadar sığsın.
+  queue = xQueueCreate(48, sizeof(BleEvent));
 
   NimBLEDevice::init(name);
   NimBLEDevice::setMTU(517);

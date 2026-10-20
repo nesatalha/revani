@@ -26,6 +26,8 @@ enum {
 };
 
 #define PROTO_BATTERY_UNKNOWN 0xFF
+// MAP_CHUNK: sonuncu hariç her parçada tam bu kadar JPEG baytı var (BLE MTU 517'ye sığar).
+#define PROTO_MAP_CHUNK_DATA 480
 #define PROTO_MAX_STREET 255
 
 typedef struct {
@@ -41,6 +43,9 @@ typedef struct {
   void (*on_nav_end)(void *ctx);
   void (*on_gps)(uint8_t speed_kmh, uint16_t heading_deg, void *ctx);
   void (*on_time)(uint32_t unix_time, int16_t utc_offset_min, void *ctx);
+  // Harita karesinin bir parçası (Faz 2). data, çağrı süresince geçerli.
+  void (*on_map_chunk)(uint16_t frame, uint16_t chunk, uint16_t chunk_count, const uint8_t *data,
+                       size_t len, void *ctx);
   void *ctx;
 } proto_handlers_t;
 

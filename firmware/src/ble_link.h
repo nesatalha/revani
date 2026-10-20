@@ -10,7 +10,7 @@ enum class BleEventKind : uint8_t { Connected, Disconnected, Subscribed, Data };
 struct BleEvent {
   BleEventKind kind;
   uint16_t len;
-  uint8_t data[260];  // NAV en fazla 8 + 255 bayt
+  uint8_t data[512];  // en uzun: MAP_CHUNK 7 + 480 bayt
 };
 
 void ble_link_begin(const char *name);

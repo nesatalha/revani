@@ -28,7 +28,17 @@ static void on_nav_end(void *ctx) { got.nav_end++; }
 static void on_gps(uint8_t s, uint16_t h, void *ctx) { got.gps++, got.speed = s, got.heading = h; }
 static void on_time(uint32_t t, int16_t o, void *ctx) { got.time++, got.unix_time = t, got.offset = o; }
 
-static const proto_handlers_t handlers = {on_nav, on_nav_end, on_gps, on_time, NULL};
+static struct {
+  int count;
+  uint16_t frame, chunk, chunk_count;
+  size_t len;
+  uint8_t first;
+} map;
+static void on_map(uint16_t f, uint16_t c, uint16_t n, const uint8_t *d, size_t len, void *ctx) {
+  map.count++, map.frame = f, map.chunk = c, map.chunk_count = n, map.len = len, map.first = len ? d[0] : 0;
+}
+
+static const proto_handlers_t handlers = {on_nav, on_nav_end, on_gps, on_time, on_map, NULL};
 
 int main(void) {
   // NAV: sağ, 180 m, 12 dk, "Bağdat Cd."
@@ -71,7 +81,14 @@ int main(void) {
 
   const uint8_t unknown[] = {0x42};
   CHECK(proto_parse(unknown, 1, &handlers) == PROTO_ERR_UNKNOWN);
-  const uint8_t later[] = {0x03, 0, 0};
+  // MAP_CHUNK: kare 258, parça 1/3, 2 bayt veri
+  const uint8_t chunk[] = {0x03, 0x02, 0x01, 0x01, 0x00, 0x03, 0x00, 0xff, 0xd8};
+  CHECK(proto_parse(chunk, sizeof chunk, &handlers) == PROTO_OK);
+  CHECK(map.count == 1 && map.frame == 258 && map.chunk == 1 && map.chunk_count == 3);
+  CHECK(map.len == 2 && map.first == 0xff);
+  CHECK(proto_parse(chunk, 6, &handlers) == PROTO_ERR_SHORT);
+
+  const uint8_t later[] = {0x01, 0, 0};
   CHECK(proto_parse(later, 3, &handlers) == PROTO_ERR_UNSUPPORTED);
   CHECK(proto_parse(NULL, 0, &handlers) == PROTO_ERR_EMPTY);
 

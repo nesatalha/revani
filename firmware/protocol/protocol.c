@@ -46,8 +46,12 @@ proto_result_t proto_parse(const uint8_t *d, size_t len, const proto_handlers_t 
       if (h->on_time) h->on_time(rd_u32(&d[1]), (int16_t)rd_u16(&d[5]), h->ctx);
       return PROTO_OK;
 
+    case PROTO_MAP_CHUNK:  // u16 kare_no, u16 parça_no, u16 parça_sayısı, veri
+      if (len < 7) return PROTO_ERR_SHORT;
+      if (h->on_map_chunk) h->on_map_chunk(rd_u16(&d[1]), rd_u16(&d[3]), rd_u16(&d[5]), &d[7], len - 7, h->ctx);
+      return PROTO_OK;
+
     case PROTO_TELEMETRY:
-    case PROTO_MAP_CHUNK:
     case PROTO_NOTIFICATION:
     case PROTO_MEDIA:
     case PROTO_CALL:

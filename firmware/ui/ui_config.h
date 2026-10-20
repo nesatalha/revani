@@ -33,6 +33,10 @@
 #define UI_INNER_RING_GAP 8
 #define UI_INNER_RING_ANIM_MS 600
 
+// Harita (Faz 2): telefondan gelen kare bu çapa büyütülüp daire içinde gösterilir
+#define UI_MAP_DIAMETER 360
+#define UI_MAP_TIMEOUT_MS 5000  // bu süre kare gelmezse büyük oklu görünüme dön
+
 // Halkaların açısı: alttan 90° boşluk, saat yönünde 270°
 #define UI_RING_START_ANGLE 135
 #define UI_RING_END_ANGLE 45

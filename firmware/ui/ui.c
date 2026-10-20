@@ -7,6 +7,7 @@
 #include "ui_arrows.h"
 #include "ui_config.h"
 #include "ui_fonts.h"
+#include "ui_internal.h"
 
 #define OUTER_RING_SIZE (UI_SCREEN_SIZE - 2 * UI_EDGE_MARGIN)
 #define INNER_RING_SIZE (OUTER_RING_SIZE - 2 * (UI_OUTER_RING_WIDTH + UI_INNER_RING_GAP))
@@ -25,13 +26,24 @@ typedef struct {
   int32_t dist_ring_value;
   bool dist_ring_blinking;
 
-  // Navigasyon sayfası
+  // Navigasyon sayfası: harita yokken büyük ok (classic), harita varken map_view
   lv_obj_t *nav_page;
+  lv_obj_t *classic;
   lv_obj_t *arrow;
   lv_obj_t *dist_value;
   lv_obj_t *dist_unit;
   lv_obj_t *street;
   bool nav_active;
+
+  // Harita görünümü (Faz 2)
+  lv_obj_t *map_view;
+  lv_obj_t *map_img;
+  lv_obj_t *map_arrow;
+  lv_obj_t *map_dist;
+  lv_obj_t *map_street;
+  uint32_t map_last_tick;
+  bool map_ever;
+  bool map_mode;
 
   // Bekleme sayfası
   lv_obj_t *idle_page;
@@ -223,15 +235,25 @@ static void show_page(bool nav) {
 void ui_set_nav(const ui_nav_t *nav) {
   show_page(true);
   ui_arrow_set(ui.arrow, nav->maneuver, nav->roundabout_exit);
+  ui_arrow_set(ui.map_arrow, nav->maneuver, nav->roundabout_exit);
 
   char value[12];
   const char *unit;
   format_distance(nav->distance_m, value, sizeof(value), &unit);
   lv_label_set_text(ui.dist_value, value);
   lv_label_set_text(ui.dist_unit, unit);
+  lv_label_set_text_fmt(ui.map_dist, "%s %s", value, unit);
 
   const char *street = nav->street ? nav->street : "";
-  if (strcmp(lv_label_get_text(ui.street), street) != 0) lv_label_set_text(ui.street, street);
+  if (strcmp(lv_label_get_text(ui.street), street) != 0) {
+    lv_label_set_text(ui.street, street);
+    lv_label_set_text(ui.map_street, street);
+  }
+  if (street[0]) {
+    lv_obj_remove_flag(ui.map_street, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(ui.map_street, LV_OBJ_FLAG_HIDDEN);
+  }
 
   dist_ring_update(nav->maneuver != UI_MANEUVER_ARRIVE, nav->distance_m);
 }
@@ -241,6 +263,125 @@ bool ui_nav_active(void) { return ui.nav_active; }
 void ui_end_nav(void) {
   show_page(false);
   dist_ring_update(false, 0);
+}
+
+// ---------------------------------------------------------------- harita
+
+static void set_map_mode(bool on) {
+  if (on == ui.map_mode) return;
+  ui.map_mode = on;
+  if (on) {
+    lv_obj_add_flag(ui.classic, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui.map_view, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_remove_flag(ui.classic, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui.map_view, LV_OBJ_FLAG_HIDDEN);
+  }
+  // Hız haritanın üstüne biniyor: harita varken koyu zemin
+  lv_opa_t opa = on ? LV_OPA_70 : LV_OPA_TRANSP;
+  lv_obj_set_style_bg_opa(ui.speed_value, opa, 0);
+  lv_obj_set_style_bg_opa(ui.speed_unit, opa, 0);
+}
+
+// Harita karesi UI_MAP_TIMEOUT_MS gelmezse büyük oklu görünüme dön.
+static void map_watchdog_cb(lv_timer_t *t) {
+  LV_UNUSED(t);
+  set_map_mode(ui.map_ever && lv_tick_elaps(ui.map_last_tick) < UI_MAP_TIMEOUT_MS);
+}
+
+void ui_show_map(lv_draw_buf_t *buf) {
+  lv_image_set_src(ui.map_img, buf);
+  lv_image_set_scale(ui.map_img, (uint32_t)(UI_MAP_DIAMETER * 256 / buf->header.w));
+  lv_obj_invalidate(ui.map_img);
+  ui.map_ever = true;
+  ui.map_last_tick = lv_tick_get();
+  map_watchdog_cb(NULL);
+}
+
+// Ortadaki konum işaretçisi: yukarı bakan sarı üçgen (harita yön yukarıda).
+static lv_obj_t *make_position_marker(lv_obj_t *parent) {
+  const int32_t s = 30;
+  lv_obj_t *canvas = lv_canvas_create(parent);
+  lv_canvas_set_draw_buf(canvas, lv_draw_buf_create(s, s, LV_COLOR_FORMAT_ARGB8888, 0));
+  lv_canvas_fill_bg(canvas, lv_color_black(), LV_OPA_TRANSP);
+  lv_layer_t layer;
+  lv_canvas_init_layer(canvas, &layer);
+  lv_draw_triangle_dsc_t t;
+  lv_draw_triangle_dsc_init(&t);
+  t.bg_opa = LV_OPA_COVER;
+  for (int pass = 0; pass < 2; pass++) {  // önce siyah kontur, sonra sarı
+    int32_t in = pass ? 4 : 0;
+    t.bg_color = pass ? color(UI_COLOR_YELLOW) : color(UI_COLOR_BG);
+    t.p[0].x = s / 2;
+    t.p[0].y = in + (pass ? 2 : 0);
+    t.p[1].x = in;
+    t.p[1].y = s - 1 - in;
+    t.p[2].x = s - 1 - in;
+    t.p[2].y = s - 1 - in;
+    lv_draw_triangle(&layer, &t);
+  }
+  lv_canvas_finish_layer(canvas, &layer);
+  lv_obj_center(canvas);
+  return canvas;
+}
+
+static void build_map_view(lv_obj_t *parent) {
+  ui.map_view = make_page(parent);
+  lv_obj_add_flag(ui.map_view, LV_OBJ_FLAG_HIDDEN);
+
+  // Dairesel kırpılmış harita (2.2.3)
+  lv_obj_t *circle = lv_obj_create(ui.map_view);
+  lv_obj_remove_style_all(circle);
+  lv_obj_set_size(circle, UI_MAP_DIAMETER, UI_MAP_DIAMETER);
+  lv_obj_center(circle);
+  lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
+  lv_obj_set_style_clip_corner(circle, true, 0);
+  lv_obj_set_style_bg_color(circle, color(UI_COLOR_TRACK), 0);
+  lv_obj_set_style_bg_opa(circle, LV_OPA_COVER, 0);
+  lv_obj_remove_flag(circle, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+  ui.map_img = lv_image_create(circle);
+  lv_obj_center(ui.map_img);
+  make_position_marker(circle);
+
+  // Üstte koyu kutu: küçük ok, mesafe, cadde (2.2.4)
+  lv_obj_t *pill = lv_obj_create(ui.map_view);
+  lv_obj_remove_style_all(pill);
+  lv_obj_set_size(pill, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_set_style_bg_color(pill, color(UI_COLOR_BG), 0);
+  lv_obj_set_style_bg_opa(pill, LV_OPA_80, 0);
+  lv_obj_set_style_radius(pill, 18, 0);
+  lv_obj_set_style_pad_hor(pill, 14, 0);
+  lv_obj_set_style_pad_ver(pill, 6, 0);
+  lv_obj_set_flex_flow(pill, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(pill, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_align(pill, LV_ALIGN_TOP_MID, 0, 92);
+
+  lv_obj_t *row = lv_obj_create(pill);
+  lv_obj_remove_style_all(row);
+  lv_obj_set_size(row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_pad_column(row, 10, 0);
+
+  // Ok tuvali 160 px; küçültme yerleşimi etkilemediği için sabit boyutlu kutuya konur.
+  const int32_t arrow_px = 64;
+  lv_obj_t *arrow_box = lv_obj_create(row);
+  lv_obj_remove_style_all(arrow_box);
+  lv_obj_set_size(arrow_box, arrow_px, arrow_px);
+  ui.map_arrow = ui_arrow_create(arrow_box);
+  lv_obj_set_style_transform_scale(ui.map_arrow, arrow_px * 256 / UI_ARROW_SIZE, 0);
+  lv_obj_set_style_transform_pivot_x(ui.map_arrow, 0, 0);
+  lv_obj_set_style_transform_pivot_y(ui.map_arrow, 0, 0);
+
+  ui.map_dist = make_label(row, &lv_font_montserrat_48, UI_COLOR_FG);
+
+  ui.map_street = make_label(pill, &revani_font_30, UI_COLOR_YELLOW);
+  lv_obj_set_width(ui.map_street, 250);
+  lv_obj_set_style_text_align(ui.map_street, LV_TEXT_ALIGN_CENTER, 0);
+  lv_label_set_long_mode(ui.map_street, LV_LABEL_LONG_DOT);
+  lv_obj_set_height(ui.map_street, lv_font_get_line_height(&revani_font_30));
+
+  lv_timer_create(map_watchdog_cb, 500, NULL);
 }
 
 // ---------------------------------------------------------------- bekleme
@@ -345,10 +486,11 @@ void ui_init(void) {
 
   // Navigasyon sayfası
   ui.nav_page = make_page(scr);
-  ui.arrow = ui_arrow_create(ui.nav_page);
+  ui.classic = make_page(ui.nav_page);
+  ui.arrow = ui_arrow_create(ui.classic);
   lv_obj_align(ui.arrow, LV_ALIGN_TOP_MID, 0, 62);
 
-  lv_obj_t *dist_row = lv_obj_create(ui.nav_page);
+  lv_obj_t *dist_row = lv_obj_create(ui.classic);
   lv_obj_remove_style_all(dist_row);
   lv_obj_set_size(dist_row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   lv_obj_set_flex_flow(dist_row, LV_FLEX_FLOW_ROW);
@@ -359,12 +501,14 @@ void ui_init(void) {
   ui.dist_unit = make_label(dist_row, &revani_font_30, UI_COLOR_FG);
   lv_obj_set_style_pad_bottom(ui.dist_unit, 14, 0);  // rakamların taban çizgisine hizala
 
-  ui.street = make_label(ui.nav_page, &revani_font_30, UI_COLOR_YELLOW);
+  ui.street = make_label(ui.classic, &revani_font_30, UI_COLOR_YELLOW);
   lv_obj_set_width(ui.street, 290);
   lv_obj_set_style_text_align(ui.street, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(ui.street, LV_LABEL_LONG_DOT);
   lv_obj_set_height(ui.street, lv_font_get_line_height(&revani_font_30));  // tek satır
   lv_obj_align(ui.street, LV_ALIGN_CENTER, 0, 92);
+
+  build_map_view(ui.nav_page);
 
   // Halkalar ve hız her iki sayfada da görünür
   ui.speed_ring = make_ring(scr, OUTER_RING_SIZE, UI_OUTER_RING_WIDTH, UI_SPEED_MAX_KMH * 10);
@@ -380,6 +524,12 @@ void ui_init(void) {
   ui.speed_unit = make_label(scr, &lv_font_montserrat_20, UI_COLOR_DIM);
   lv_label_set_text(ui.speed_unit, "km/h");
   lv_obj_align(ui.speed_unit, LV_ALIGN_BOTTOM_MID, 0, -36);
+  for (int i = 0; i < 2; i++) {  // harita modunda görünen koyu zemin
+    lv_obj_t *l = i ? ui.speed_unit : ui.speed_value;
+    lv_obj_set_style_bg_color(l, color(UI_COLOR_BG), 0);
+    lv_obj_set_style_radius(l, 8, 0);
+    lv_obj_set_style_pad_hor(l, 8, 0);
+  }
 
   ui.gps_lost = true;
   apply_gps_style();
