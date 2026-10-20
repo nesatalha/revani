@@ -55,3 +55,13 @@ Ekran sürücüsü (ST7701) adım 1.2.2'de eklenecek. BLE servisi hazır: `Revan
 ## Fontlar
 
 `ui/fonts/generate.sh` Montserrat'ı LVGL paketinden alıp `lv_font_conv` ile üretir. Önce `pio pkg install` gerekir.
+
+## USB köprüsü (kart olmadan gerçek veri)
+
+Telefonu USB ile bağla ve:
+
+```bash
+simulator/bridge.sh
+```
+
+Telefonda Revani → Ayarlar → **Simülatöre gönder**, servis açık. Telefon, BLE'ye gönderdiği aynı mesajları `adb reverse tcp:7878` üzerinden simülatöre yollar (`[u16 uzunluk][mesaj]`). Ekran görüntüsü: `pkill -USR1 revani_sim` → `simulator/build/bridge.bmp`.

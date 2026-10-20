@@ -1,18 +1,23 @@
 // Revani LVGL simülatörü (macOS, SDL2).
 //
 //   revani_sim [--speed N]                      pencerede sahte veriyle çalışır
+//   revani_sim --bridge [--port 7878] [--shot out.bmp]
+//                                               telefondan USB köprüsüyle gerçek veri (1.7);
+//                                               `kill -USR1 <pid>` ekran görüntüsünü out.bmp'ye yazar
 //   revani_sim --shot out.bmp [--scene S] [--ms N]
 //                                               penceresiz çizer, ekran görüntüsü yazar
 //
 // Sahneler: idle, connected, nav, near, turn, far, gps-lost, arrows, fake, ble
 
 #include <lvgl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
+#include "bridge.h"
 #include "screenshot.h"
 #include "ui.h"
 #include "ui_arrows.h"
@@ -167,14 +172,38 @@ static int headless(const char *out, const char *scene, uint32_t ms) {
 
 // ---------------------------------------------------------------- pencere modu
 
-static int windowed(int speedup) {
+static volatile sig_atomic_t shot_requested;
+static void on_usr1(int sig) { shot_requested = 1; }
+
+static void write_window_shot(lv_display_t *disp, const char *path) {
+  lv_draw_buf_t *fb = lv_display_get_buf_active(disp);
+  if (!fb || fb->header.stride != W * 4) {
+    fprintf(stderr, "Ekran görüntüsü alınamadı\n");
+    return;
+  }
+  if (screenshot_write_bmp(path, (const uint32_t *)fb->data, W, H)) printf("%s yazıldı\n", path);
+}
+
+static int windowed(int speedup, int bridge_port, const char *shot) {
   lv_display_t *disp = lv_sdl_window_create(W, H);
-  lv_sdl_window_set_title(disp, "Revani");
+  lv_sdl_window_set_title(disp, bridge_port ? "Revani (USB köprüsü)" : "Revani");
   ui_init();
+  ui_proto_init();
   add_round_mask();
-  ui_fake_start(speedup);
+  if (bridge_port) {
+    if (!bridge_start((uint16_t)bridge_port)) return 1;
+  } else {
+    ui_fake_start(speedup);
+  }
+  if (shot) signal(SIGUSR1, on_usr1);
   for (;;) {
+    bridge_poll();
     uint32_t wait = lv_timer_handler();
+    if (shot_requested) {
+      shot_requested = 0;
+      lv_refr_now(disp);
+      write_window_shot(disp, shot);
+    }
     usleep((wait < 5 ? wait : 5) * 1000);
   }
   return 0;
@@ -183,18 +212,25 @@ static int windowed(int speedup) {
 int main(int argc, char **argv) {
   const char *shot = NULL, *scene = "nav";
   uint32_t ms = 2000;
-  int speedup = 1;
+  int speedup = 1, bridge_port = 0;
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--shot") && i + 1 < argc) shot = argv[++i];
     else if (!strcmp(argv[i], "--scene") && i + 1 < argc) scene = argv[++i];
     else if (!strcmp(argv[i], "--ms") && i + 1 < argc) ms = (uint32_t)atoi(argv[++i]);
     else if (!strcmp(argv[i], "--speed") && i + 1 < argc) speedup = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "--bridge")) bridge_port = bridge_port ? bridge_port : BRIDGE_DEFAULT_PORT;
+    else if (!strcmp(argv[i], "--port") && i + 1 < argc) bridge_port = atoi(argv[++i]);
     else {
-      fprintf(stderr, "Kullanım: %s [--speed N] | --shot out.bmp [--scene S] [--ms N]\n", argv[0]);
+      fprintf(stderr,
+              "Kullanım: %s [--speed N] | --bridge [--port P] [--shot out.bmp] |"
+              " --shot out.bmp [--scene S] [--ms N]\n",
+              argv[0]);
       return 2;
     }
   }
 
+  setvbuf(stdout, NULL, _IOLBF, 0);  // betik loga yazarken satır satır görünsün
   lv_init();
-  return shot ? headless(shot, scene, ms) : windowed(speedup);
+  if (bridge_port) return windowed(speedup, bridge_port, shot);
+  return shot ? headless(shot, scene, ms) : windowed(speedup, 0, NULL);
 }

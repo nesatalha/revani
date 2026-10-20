@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../channels/revani_channels.dart';
 import '../models/status.dart';
 import 'permissions_screen.dart';
+import 'status_builder.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,11 +45,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : 'Son ekran: ${s.lastDeviceAddress}',
                   ),
                   value: s.autoConnect,
-                  onChanged: (v) => _update(
-                    RevaniSettings(
-                      autoConnect: v,
-                      lastDeviceAddress: s.lastDeviceAddress,
+                  onChanged: (v) => _update(s.copyWith(autoConnect: v)),
+                ),
+                StatusBuilder(
+                  builder: (context, status) => SwitchListTile(
+                    title: const Text('Simülatöre gönder (USB köprüsü)'),
+                    subtitle: Text(
+                      s.bridgeEnabled
+                          ? _bridgeLabel(status.bridgeState)
+                          : 'Mac’te simülatörü çalıştırıp USB ile bağla',
                     ),
+                    value: s.bridgeEnabled,
+                    onChanged: (v) => _update(s.copyWith(bridgeEnabled: v)),
                   ),
                 ),
                 ListTile(
@@ -64,4 +72,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
     );
   }
+
+  static String _bridgeLabel(String state) => switch (state) {
+    'connected' => 'Simülatöre bağlı',
+    'connecting' => 'Simülatör bekleniyor (servis açık olmalı)',
+    _ => 'Servis kapalı',
+  };
 }

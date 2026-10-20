@@ -54,6 +54,7 @@ class RevaniStatus {
     this.deviceName,
     this.deviceAddress,
     this.displayBattery,
+    this.bridgeState = 'off',
     this.lastNav,
     this.navActive = false,
     this.gpsSpeed,
@@ -71,6 +72,7 @@ class RevaniStatus {
     deviceName: m['deviceName'] as String?,
     deviceAddress: m['deviceAddress'] as String?,
     displayBattery: m['displayBattery'] as int?,
+    bridgeState: m['bridgeState'] as String? ?? 'off',
     lastNav: m['lastNav'] is Map
         ? NavInfo.fromMap(m['lastNav'] as Map<Object?, Object?>)
         : null,
@@ -86,6 +88,9 @@ class RevaniStatus {
   final String? deviceName;
   final String? deviceAddress;
   final int? displayBattery;
+
+  /// USB köprüsü (1.7): off, connecting, connected
+  final String bridgeState;
   final NavInfo? lastNav;
   final bool navActive;
   final int? gpsSpeed;
@@ -147,15 +152,33 @@ class PermissionState {
 }
 
 class RevaniSettings {
-  const RevaniSettings({this.autoConnect = true, this.lastDeviceAddress});
+  const RevaniSettings({
+    this.autoConnect = true,
+    this.lastDeviceAddress,
+    this.bridgeEnabled = false,
+  });
 
   factory RevaniSettings.fromMap(Map<Object?, Object?> m) => RevaniSettings(
     autoConnect: m['autoConnect'] as bool? ?? true,
     lastDeviceAddress: m['lastDeviceAddress'] as String?,
+    bridgeEnabled: m['bridgeEnabled'] as bool? ?? false,
   );
 
   final bool autoConnect;
   final String? lastDeviceAddress;
 
-  Map<String, Object?> toMap() => {'autoConnect': autoConnect};
+  /// USB köprüsü: mesajları simülatöre de gönder (1.7).
+  final bool bridgeEnabled;
+
+  RevaniSettings copyWith({bool? autoConnect, bool? bridgeEnabled}) =>
+      RevaniSettings(
+        autoConnect: autoConnect ?? this.autoConnect,
+        lastDeviceAddress: lastDeviceAddress,
+        bridgeEnabled: bridgeEnabled ?? this.bridgeEnabled,
+      );
+
+  Map<String, Object?> toMap() => {
+    'autoConnect': autoConnect,
+    'bridgeEnabled': bridgeEnabled,
+  };
 }

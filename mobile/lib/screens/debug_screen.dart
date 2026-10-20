@@ -27,6 +27,7 @@ class _DebugScreenState extends State<DebugScreen> {
           final rows = <(String, String)>[
             ('servis', s.serviceRunning ? 'çalışıyor' : 'kapalı'),
             ('ble', s.bleState.name),
+            ('köprü', s.bridgeState),
             ('cihaz', '${s.deviceName ?? '—'} ${s.deviceAddress ?? ''}'),
             ('ekran pili', s.displayBattery?.toString() ?? '—'),
             (

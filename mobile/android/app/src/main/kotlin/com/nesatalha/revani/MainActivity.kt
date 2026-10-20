@@ -74,6 +74,9 @@ class MainActivity : FlutterActivity() {
             "getSettings" -> result.success(Settings(this).toMap())
             "setSettings" -> {
                 (call.arguments as? Map<*, *>)?.let { Settings(this).apply(it) }
+                if (RevaniState.status.value.serviceRunning) {
+                    RevaniService.command(this, RevaniService.ACTION_SETTINGS_CHANGED)
+                }
                 result.success(Settings(this).toMap())
             }
             "getPermissions" -> result.success(permissionState())
@@ -204,6 +207,7 @@ private fun RevaniState.Status.toMap(): Map<String, Any?> = mapOf(
     "deviceName" to deviceName,
     "deviceAddress" to deviceAddress,
     "displayBattery" to displayBattery,
+    "bridgeState" to bridgeState,
     "lastNav" to lastNav?.toMap(),
     "navActive" to navActive,
     "gpsSpeed" to gpsSpeed,

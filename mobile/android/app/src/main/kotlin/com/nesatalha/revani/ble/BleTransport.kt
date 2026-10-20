@@ -19,6 +19,8 @@ import android.os.ParcelUuid
 import android.util.Log
 import com.nesatalha.revani.RevaniState
 import com.nesatalha.revani.RevaniState.BleState
+import com.nesatalha.revani.link.DashTransport
+import com.nesatalha.revani.link.MessageQueue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -37,12 +39,12 @@ import kotlinx.coroutines.withTimeoutOrNull
  * Gönderilecek mesajlar tipe göre birleştirilir: aynı tipten yalnız en sonuncusu gider.
  */
 @SuppressLint("MissingPermission") // izinler Flutter izin akışında alınıyor
-class DashLink(
+class BleTransport(
     private val context: Context,
     private val scope: CoroutineScope,
     private val onReady: () -> Unit,
     private val onIncoming: (ByteArray) -> Unit,
-) {
+) : DashTransport {
     private val adapter: BluetoothAdapter? =
         context.getSystemService(BluetoothManager::class.java)?.adapter
 
@@ -100,6 +102,8 @@ class DashLink(
         disconnect()
         connectionJob = scope.launch { connectionLoop(device) }
     }
+
+    override fun close() = disconnect()
 
     fun disconnect() {
         connectionJob?.cancel()
@@ -221,29 +225,18 @@ class DashLink(
 
     // ---------------------------------------------------------------- gönderme
 
-    private val pending = LinkedHashMap<Int, ByteArray>()
+    private val queue = MessageQueue()
     private val wake = Channel<Unit>(Channel.CONFLATED)
     private var maxPayload = DEFAULT_MTU - 3
 
-    /** Mesajı kuyruğa koyar; aynı tipte bekleyen eski mesajın yerini alır. */
-    fun send(message: ByteArray) {
-        if (message.isEmpty()) return
-        synchronized(pending) {
-            val type = message[0].toInt() and 0xFF
-            pending.remove(type) // sıraya yeniden en sona girsin
-            pending[type] = message
-        }
+    override fun send(message: ByteArray) {
+        queue.put(message)
         wake.trySend(Unit)
-    }
-
-    private fun nextPending(): ByteArray? = synchronized(pending) {
-        val it = pending.entries.iterator()
-        if (!it.hasNext()) null else it.next().value.also { _ -> it.remove() }
     }
 
     private suspend fun writerLoop(g: BluetoothGatt, rx: BluetoothGattCharacteristic) {
         while (!disconnected.isCompleted) {
-            val msg = nextPending()
+            val msg = queue.poll()
             if (msg == null) {
                 select {
                     wake.onReceive { }
@@ -304,7 +297,7 @@ class DashLink(
     }
 
     companion object {
-        private const val TAG = "DashLink"
+        private const val TAG = "BleTransport"
         private const val MTU = 517
         private const val DEFAULT_MTU = 23
         private const val SCAN_TIMEOUT_MS = 20_000L

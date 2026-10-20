@@ -20,6 +20,8 @@ object RevaniState {
         val deviceName: String? = null,
         val deviceAddress: String? = null,
         val displayBattery: Int? = null,
+        /** USB köprüsü (1.7): off, connecting, connected */
+        val bridgeState: String = "off",
         val lastNav: NavInfo? = null,
         val navActive: Boolean = false,
         val gpsSpeed: Int? = null,

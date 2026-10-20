@@ -24,7 +24,7 @@ target_compile_definitions(lvgl PUBLIC LV_CONF_INCLUDE_SIMPLE REVANI_SIMULATOR)
 target_link_libraries(lvgl PUBLIC SDL2::SDL2)
 
 file(GLOB_RECURSE UI_SOURCES ${FW_DIR}/ui/*.c)
-add_executable(revani_sim main.c screenshot.c ${UI_SOURCES} ${FW_DIR}/protocol/protocol.c)
+add_executable(revani_sim main.c screenshot.c bridge.c ${UI_SOURCES} ${FW_DIR}/protocol/protocol.c)
 target_include_directories(revani_sim PRIVATE ${FW_DIR}/ui ${FW_DIR}/protocol)
 target_compile_options(revani_sim PRIVATE -Wall -Wextra -Wno-unused-parameter)
 target_link_libraries(revani_sim PRIVATE lvgl m)

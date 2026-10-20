@@ -16,8 +16,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.nesatalha.revani.RevaniState.BleState
-import com.nesatalha.revani.ble.DashLink
+import com.nesatalha.revani.ble.BleTransport
 import com.nesatalha.revani.ble.Protocol
+import com.nesatalha.revani.link.TcpTransport
 import com.nesatalha.revani.location.LocationSource
 import com.nesatalha.revani.nav.Maneuver
 import com.nesatalha.revani.nav.NavInfo
@@ -41,7 +42,8 @@ class RevaniService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var settings: Settings
-    private lateinit var link: DashLink
+    private lateinit var link: BleTransport
+    private var bridge: TcpTransport? = null
     private lateinit var location: LocationSource
     private var lastFixAt = 0L
     private var fakeNavJob: Job? = null
@@ -52,7 +54,8 @@ class RevaniService : Service() {
         super.onCreate()
         settings = Settings(this)
         startInForeground()
-        link = DashLink(this, scope, onReady = ::onLinkReady, onIncoming = ::onIncoming)
+        link = BleTransport(this, scope, onReady = ::onLinkReady, onIncoming = ::onIncoming)
+        applyBridgeSetting()
         location = LocationSource(this, ::onFix)
         RevaniState.update { it.copy(serviceRunning = true) }
 
@@ -67,10 +70,10 @@ class RevaniService : Service() {
             var wasActive = false
             RevaniState.nav.collect { nav ->
                 if (nav != null) {
-                    link.send(Protocol.nav(nav))
+                    send(Protocol.nav(nav))
                     wasActive = true
                 } else if (wasActive) {
-                    link.send(Protocol.navEnd())
+                    send(Protocol.navEnd())
                     wasActive = false
                 }
                 RevaniState.update { it.copy(lastNav = nav ?: it.lastNav, navActive = nav != null) }
@@ -106,24 +109,51 @@ class RevaniService : Service() {
                 link.connect(it)
             }
             ACTION_DISCONNECT -> link.disconnect()
+            ACTION_SETTINGS_CHANGED -> applyBridgeSetting()
             ACTION_FAKE_NAV -> setFakeNav(intent.getBooleanExtra(EXTRA_ENABLED, false))
         }
         return START_STICKY
     }
 
+    /** Mesajı karta (BLE) ve açıksa simülatöre (USB köprüsü) gönderir. */
+    private fun send(message: ByteArray) {
+        link.send(message)
+        bridge?.send(message)
+    }
+
+    private fun applyBridgeSetting() {
+        if (settings.bridgeEnabled == (bridge != null)) return
+        if (settings.bridgeEnabled) {
+            bridge = TcpTransport(
+                scope,
+                onState = { st -> RevaniState.update { it.copy(bridgeState = st.name.lowercase()) } },
+                onReady = { scope.launch { onLinkReady() } },
+                onIncoming = { data -> scope.launch { onIncoming(data) } },
+            )
+        } else {
+            bridge?.close()
+            bridge = null
+            RevaniState.update { it.copy(bridgeState = "off") }
+        }
+    }
+
     override fun onDestroy() {
+        bridge?.close()
+        bridge = null
         location.stop()
         link.disconnect()
         scope.cancel()
-        RevaniState.update { it.copy(serviceRunning = false, bleState = BleState.IDLE, gpsSpeed = null) }
+        RevaniState.update {
+            it.copy(serviceRunning = false, bleState = BleState.IDLE, bridgeState = "off", gpsSpeed = null)
+        }
         super.onDestroy()
     }
 
     private fun onLinkReady() {
         // Bağlanınca saat (adım 1.4.11) ve varsa güncel navigasyon
         val now = System.currentTimeMillis()
-        link.send(Protocol.time(now / 1000, TimeZone.getDefault().getOffset(now) / 60_000))
-        RevaniState.nav.value?.let { link.send(Protocol.nav(it)) }
+        send(Protocol.time(now / 1000, TimeZone.getDefault().getOffset(now) / 60_000))
+        RevaniState.nav.value?.let { send(Protocol.nav(it)) }
     }
 
     private fun onIncoming(data: ByteArray) {
@@ -137,7 +167,7 @@ class RevaniService : Service() {
     private fun onFix(speedKmh: Int, headingDeg: Int) {
         lastFixAt = System.currentTimeMillis()
         RevaniState.update { it.copy(gpsSpeed = speedKmh, gpsHeading = headingDeg) }
-        link.send(Protocol.gps(speedKmh, headingDeg))
+        send(Protocol.gps(speedKmh, headingDeg))
     }
 
     /** Masada telefon olmadan test: Google Maps yerine sahte navigasyon üretir. */
@@ -235,6 +265,7 @@ class RevaniService : Service() {
         const val ACTION_CONNECT = "revani.CONNECT"
         const val ACTION_DISCONNECT = "revani.DISCONNECT"
         const val ACTION_FAKE_NAV = "revani.FAKE_NAV"
+        const val ACTION_SETTINGS_CHANGED = "revani.SETTINGS_CHANGED"
         const val EXTRA_ADDRESS = "address"
         const val EXTRA_ENABLED = "enabled"
 
