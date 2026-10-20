@@ -729,6 +729,13 @@ void ui_init(void) {
 
   build_speed_panel(scr);
 
+  // Çizim sırası: kadran ve mesafe halkası en altta; sayfalar (harita ve alttaki kutu),
+  // ibre ve hız kutusu bunların üstünde.
+#if UI_INNER_RING_ENABLED
+  lv_obj_move_background(ui.dist_ring);
+#endif
+  lv_obj_move_background(ui.dial);
+
   ui.gps_lost = true;
   apply_gps_style();
   lv_timer_create(gps_watchdog_cb, 250, NULL);
