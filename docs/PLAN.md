@@ -14,7 +14,7 @@
 | Faz | Durum | Tamamlanan |
 |---|---|---|
 | Faz 0: Hazırlık | ⬜ Başlamadı | 0 / 10 |
-| Faz 1: Navigasyon MVP | ⬜ Başlamadı | 0 / 34 |
+| Faz 1: Navigasyon MVP | ⬜ Başlamadı | 0 / 36 |
 | Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
@@ -27,6 +27,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | Tarih | Değişiklik |
 |---|---|
 | 2026-10-20 | Plan oluşturuldu. Mimari: Flutter arayüz + Kotlin servis. |
+| 2026-10-20 | Dış halka OBD gelene kadar **GPS hızını** gösterecek. Dönüşe kalan mesafe **ince iç halkaya** taşındı. İç halkanın gerekli olup olmadığına yol testinde karar verilecek (adım 1.6.5). |
 
 ---
 
@@ -68,8 +69,8 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 ┌──────────────────────────────┐   BLE    ┌──────────────────────────┐
 │ Android (cepte)              │ ───────▶ │ ESP32-S3 2.8" (gidonda)  │
 │                              │          │                          │
-│ Google Maps navigasyonu      │          │ dış halka: dönüşe kalan  │
-│   └─ bildirimini okur        │          │            mesafe        │
+│ Google Maps navigasyonu      │          │ dış halka: GPS hızı      │
+│   └─ bildirimini okur        │          │ iç halka: dönüşe mesafe  │
 │ GPS → hız, yön               │          │ orta: harita (Faz 2)     │
 │ MapLibre → harita görüntüsü  │          │       ok, mesafe, hız    │
 │ Müzik, arama (Faz 4)         │ ◀─────── │ butonlar (Faz 3)         │
@@ -82,7 +83,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 2. **Revani** uygulamasının Kotlin servisi arka planda Google Maps'in navigasyon bildirimini okur: "200 m sonra sağa dön, Bağdat Cd."
 3. Servis GPS'ten **hızını** ve **yönünü** alır.
 4. Bu bilgileri **BLE** ile gidondaki ekrana gönderir.
-5. Ekran **oku, mesafeyi ve cadde adını** büyük yazıyla çizer. **Dış halka** dönüşe yaklaştıkça dolar.
+5. Ekran **oku, mesafeyi ve cadde adını** büyük yazıyla çizer. **Dış halka** hızını gösterir, **ince iç halka** dönüşe yaklaştıkça dolar.
 6. Faz 2'den itibaren servis, bulunduğun yerin **küçük bir harita görüntüsünü** saniyede 1–3 kez gönderir. Ekran onu ortaya koyar.
 7. Navigasyon bitince veya telefon uzaklaşınca ekran saat ve pil durumunu gösterir, bir süre sonra kararır.
 
@@ -193,7 +194,18 @@ revani/
 
 ## 5. Ekran tasarımı
 
-### Dış halka: dönüşe kalan mesafe (OBD gelene kadar)
+### Dış halka: GPS hızı (OBD gelene kadar)
+
+- Ölçek **0–140 km/h** (Hunter 350'nin son hızı ~110–115 km/h).
+- Hız telefonun GPS'inden gelir, genelde saniyede 1 güncellenir. ESP32 değerler arasını **yumuşak animasyonla** doldurur.
+- **10 km/h altında** GPS hızı titrer: halka 0'da sabit tutulur.
+- **GPS kaybolursa** (tünel, köprü altı) halka gri olur, son değer silik gösterilir.
+- GPS hızı motorun göstergesinden %5–10 düşük görünebilir. Bu normal (motor göstergeleri genelde fazla gösterir).
+- **Faz 5'te** dış halka **devir göstergesi** olur, hız ortaya sayı olarak geçer.
+
+### İç halka: dönüşe kalan mesafe
+
+Dış halkanın hemen içinde, ince bir halka.
 
 ```
  Dönüşe 500 m    Dönüşe 200 m     Dönüşe 50 m      Dönüş anı
@@ -201,9 +213,9 @@ revani/
                    başladı          dolu (sarı)      (yeşil, yanıp söner)
 ```
 
-- Halka **son 500 metrede** dolmaya başlar. Daha uzaktaysa ince ve gri durur.
+- **Son 500 metrede** dolmaya başlar. Daha uzaktaysa ve navigasyon yokken görünmez.
 - Son 100 metrede renk **sarıya** döner.
-- **Faz 5'te** bu halka **devir göstergesi** olur.
+- **Açık karar:** iç halka gerçekten gerekli mi, yoksa ortadaki ok ve mesafe yeterli mi? Yol testinde karar verilecek (adım 1.6.5).
 
 ### Orta alan
 
@@ -246,10 +258,11 @@ revani/
 
 - [ ] 1.1.1 LVGL simülatörünü 480×480, dairesel maskeyle kur
 - [ ] 1.1.2 Navigasyon ekranı: ok, mesafe, cadde adı, GPS hızı
-- [ ] 1.1.3 Dış halka: mesafe halkası (500 m → 0, son 100 m'de sarı)
+- [ ] 1.1.3 Dış halka: GPS hız göstergesi (0–140 km/h, yumuşatmalı animasyon, 10 km/h altında 0, GPS yoksa gri)
 - [ ] 1.1.4 Bekleme ekranı: saat, pil, "telefon bekleniyor"
 - [ ] 1.1.5 Ok ikonları: düz, hafif/normal/keskin sağ-sol, U dönüşü, dönel kavşak, varış
-- [ ] 1.1.6 Sahte veri üreteci (mesafe 500 → 0, ok değişimi)
+- [ ] 1.1.6 Sahte veri üreteci (hız dalgalanması, mesafe 500 → 0, ok değişimi)
+- [ ] 1.1.7 İç halka: dönüşe kalan mesafe (500 m → 0, son 100 m'de sarı, navigasyon yoksa gizli)
 
 ### 1.2 Kart geldiğinde
 
@@ -293,6 +306,7 @@ revani/
 - [ ] 1.6.2 Telefon kilitliyken 30 dk kesintisiz çalışma
 - [ ] 1.6.3 Arabada (yolcu koltuğunda) 10 dönüşlük rota: en az 9 doğru ok
 - [ ] 1.6.4 Flutter arayüzü kapatılınca servis çalışmaya devam ediyor mu?
+- [ ] 1.6.5 **Karar:** iç mesafe halkası kalsın mı, yoksa dış halkada sadece hız yeterli mi? Sonucu değişiklik günlüğüne yaz.
 
 **✅ Faz 1 bitti sayılır:** Arabada 10 dönüşün en az 9'u doğru gösteriliyorsa.
 
@@ -425,8 +439,8 @@ revani/
 
 - [ ] 5.3.1 Seçilen yöntemle devir okuma (masada / motorda test)
 - [ ] 5.3.2 `TELEMETRY` mesajı
-- [ ] 5.3.3 Dış halka → devir göstergesi (yumuşatmalı animasyon)
-- [ ] 5.3.4 Mesafe halkası → ayrı ekran veya ince iç halka
+- [ ] 5.3.3 Dış halka → devir göstergesi (yumuşatmalı animasyon), hız ortaya sayı olarak geçer
+- [ ] 5.3.4 İç mesafe halkası: 1.6.5 kararına göre korunur veya kaldırılır
 - [ ] 5.3.5 Yeni ekran: Motor (hız, sıcaklık, akü voltajı)
 - [ ] 5.3.6 İlk hafta akü voltajı takibi
 
@@ -515,6 +529,7 @@ Ek alışveriş yok.
 - [ ] Ana telefon iPhone mu? (Faz 4'ü etkiler)
 - [ ] Ekranın gidondaki yeri (panelin solu, sağı, üstü)
 - [ ] Flutter/Android paket adı ve organizasyon (`com.xxx.revani`)
+- [ ] İç mesafe halkası gerekli mi? (adım 1.6.5'te karar verilecek)
 - [ ] OBD soketi fotoğrafı (Faz 5'ten önce)
 
 ---
