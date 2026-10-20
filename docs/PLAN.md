@@ -47,6 +47,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Harita yerleşimi kullanıcının seçtiği **alt** düzen oldu (varsayılan): ekranın üstü tamamen harita; ok + mesafe ve cadde alttaki yarı saydam kutuda, hız kutusu harita modunda küçülüp (DSEG7 40 px) en altta. Konum işaretçisi bu grubun hemen üstünde (merkezin %8 altı, telefon kamerayı aynı oranda kaydırıyor). Üst/sol/sağ yerleşimler `ui_map_set_layout()` ile hâlâ seçilebilir. |
 | 2026-10-20 | Harita modu sadeleşti (kullanıcı isteği): alttaki yarı saydam kutuda üst satır **sadece sokak**, alt satır (yüksekliği aynı) solda **ok + mesafe**, sağda **küçük LCD hız**. Harita modunda büyük hız kutusu ve kadranın 0/120 sayıları (kutunun köşelerine denk geliyor) gizleniyor. Konum işaretçisi kutunun hemen üstünde (%12). Üst/sol/sağ yerleşim seçenekleri kaldırıldı. |
 | 2026-10-20 | Harita modunda mesafe küçüldü: alttaki kutuda büyük ok, yanında küçük "180 m" (20 px). Yakınlığı asıl iç halka gösteriyor; 500 m ötesi için küçük mesafe kalıyor. |
+| 2026-10-20 | Kart Waveshare wiki'siyle kontrol edildi: Motorobit SKU 30254 dokunmatiksiz ESP32-S3-LCD-2.8C, doğru kart. Type-C bir CH343P USB-UART (UART0, GPIO43/44) üzerinden bağlı, bu yüzden `ARDUINO_USB_CDC_ON_BOOT=0` yapıldı. Kart notları: pil ADC GPIO4, pil konnektörü MX1.25 (şarj devresi + güç düğmesi var); boş GPIO yalnız 0/19/20 (43/44 USB-UART'ta); I2C GPIO7/15; TCA9554 dolu; QMI8658 IMU, PCF85063 RTC, TF yuvası ve buzzer (EXIO8) kullanılabilir. Arduino core 3.x (pioarduino) geçişi denendi ama **disk dolu** olduğu için paket kurulamadı; 1.2.2'den önce yapılacak. |
 
 ---
 
@@ -294,7 +295,7 @@ Dış halkanın hemen içinde, ince bir halka.
 ### 1.2 Kart geldiğinde
 
 - [ ] 1.2.1 Waveshare ESP32-S3-LCD-2.8C demosunu yükle, ekranın çalıştığını gör
-- [ ] 1.2.2 ST7701 (RGB) sürücü ve pin ayarlarını kendi projene al
+- [ ] 1.2.2 ST7701 (RGB) sürücü ve pin ayarlarını kendi projene al. **Önce** PlatformIO'yu Arduino core 3.x / ESP-IDF 5.x'e (pioarduino) geçir: bounce buffer + PSRAM'den XIP, BLE sırasında ekran kaymasını önler.
 - [ ] 1.2.3 Simülatördeki arayüzü karta taşı (ortak `ui/` klasörü)
 
 ### 1.3 ESP32 BLE
@@ -302,7 +303,7 @@ Dış halkanın hemen içinde, ince bir halka.
 - [x] 1.3.1 NimBLE ile servis ve RX/TX karakteristikleri
 - [x] 1.3.2 Gelen mesajı tipine göre ayrıştır (NAV, NAV_END, GPS, TIME)
 - [x] 1.3.3 LVGL'i BLE callback'inden değil ana döngüden güncelle (kuyruk ile)
-- [ ] 1.3.4 STATUS mesajı ile pil yüzdesini gönder (mesaj gidiyor; pil ölçülemediği için şimdilik `0xFF` = bilinmiyor. Pil ölçümü kart gelince, 3.1 ile)
+- [ ] 1.3.4 STATUS mesajı ile pil yüzdesini gönder (mesaj gidiyor; pil ölçülemediği için şimdilik `0xFF` = bilinmiyor. Pil gerilimi **GPIO4 (BAT_ADC)** ile okunacak, kart gelince)
 - [x] 1.3.5 Bağlantı kopunca bekleme ekranına dön, yeniden yayına başla
 
 ### 1.4 Kotlin servisi
@@ -407,14 +408,14 @@ Telefondaki uygulama, BLE'ye gönderdiği **aynı mesaj baytlarını** USB kablo
 
 ### 3.1 Pil
 
-- [ ] 3.1.1 Kartın pil konnektörünü pinout şemasından doğrula (büyük ihtimalle MX1.25, 2 pin)
+- [ ] 3.1.1 Kartın pil konnektörünü doğrula (wiki'ye göre MX1.25 2 pin, kartta şarj devresi ve güç düğmesi var)
 - [ ] 3.1.2 Uygun LiPo'yu al, **kutup yönünü kontrol ederek** tak
 - [ ] 3.1.3 Bağlantı yoksa 2 dk sonra ekranı karart, 10 dk sonra uyku
 - [ ] 3.1.4 Pil süresi ölçümü (parlaklık %80, BLE bağlı, harita akıyor). Hedef ≥ 6 saat.
 
 ### 3.2 Butonlar
 
-- [ ] 3.2.1 SH1.0 konnektörlerinden boş GPIO'ları bul
+- [ ] 3.2.1 Buton pinleri: boş GPIO yalnız GPIO0 (strapping), GPIO19/20 (12 pinli konnektörde native USB D-/D+) ve GPIO43/44 (USB-UART bağlıyken kullanılamaz). Ya 0/19/20 kullanılır ya da I2C'ye (GPIO7 SCL / GPIO15 SDA, ortak hat) PCF8574 eklenir; PCF8574 Faz 5 seçenek B için de pin açar. TCA9554 genişletici tamamen dolu.
 - [ ] 3.2.2 3 butonu bağla: Sonraki ekran, Seç, Geri
 - [ ] 3.2.3 Dahili pull-up ve 30 ms debounce
 - [ ] 3.2.4 Uzun basış (>800 ms) ikinci fonksiyon
@@ -571,7 +572,8 @@ Ek alışveriş yok.
 | Google Maps bildirim formatı değişir | Ok veya mesafe yanlış okunur | Ayrıştırıcıyı esnek yaz, şablonları güncelle. İleride kendi rota hesabı. |
 | Android servisi arka planda kapatır | Navigasyon ekrana gelmez | Foreground service, pil optimizasyonu muafiyeti, markaya özel ayarlar |
 | Flutter ↔ Kotlin köprüsünde hata ayıklama zorluğu | Geliştirme yavaşlar | Kanalları ince tut, iş mantığı tamamen Kotlin'de, Flutter sadece gösterir |
-| IPS ekran güneşte zor okunur | Bilgi kaçar | Yüksek kontrast, güneşlik. Gerekirse AMOLED karta geçiş. |
+| IPS ekran güneşte zor okunur | Bilgi kaçar | Panel parlaklığı belirtilmemiş: kart gelince **ilk iş güneşte okunabilirliği dene**. Yüksek kontrast, güneşlik. Gerekirse AMOLED karta geçiş. |
+| LiPo konnektörü ters kutuplu | Kart yanar | Türkiye'de satılan MX1.25 paketlerinde kutup sık ters: takmadan önce multimetreyle kontrol et. |
 | BLE cepte kopar | Ekran donar | Otomatik yeniden bağlanma, "bağlantı yok" uyarısı |
 | Harita kare hızı düşük | Harita takılır | Ok ve hız ESP32'de çizildiği için asıl bilgi etkilenmez |
 
