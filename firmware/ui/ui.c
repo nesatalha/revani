@@ -47,8 +47,7 @@ typedef struct {
   // Alttaki yarı saydam kutu: üst satır sokak, alt satır solda ok + mesafe, sağda hız
   lv_obj_t *map_street;
   lv_obj_t *map_arrow;
-  lv_obj_t *map_dist;
-  lv_obj_t *map_dist_unit;
+  lv_obj_t *map_dist;  // küçük "750 m" (yakınlığı asıl iç halka gösteriyor)
   lv_obj_t *map_speed_ghost;
   lv_obj_t *map_speed_value;
   uint32_t map_last_tick;
@@ -405,8 +404,7 @@ void ui_set_nav(const ui_nav_t *nav) {
   format_distance(nav->distance_m, value, sizeof(value), &unit);
   lv_label_set_text(ui.dist_value, value);
   lv_label_set_text(ui.dist_unit, unit);
-  lv_label_set_text(ui.map_dist, value);
-  lv_label_set_text(ui.map_dist_unit, unit);
+  lv_label_set_text_fmt(ui.map_dist, "%s %s", value, unit);
 
   const char *street = nav->street ? nav->street : "";
   if (strcmp(lv_label_get_text(ui.street), street) != 0) {
@@ -547,13 +545,13 @@ static void build_map_view(lv_obj_t *parent) {
   lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 
-  // Sol: ok + mesafe
+  // Sol: büyük ok + küçük mesafe
   lv_obj_t *left = lv_obj_create(row);
   lv_obj_remove_style_all(left);
   lv_obj_set_size(left, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   lv_obj_set_flex_flow(left, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(left, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
-  lv_obj_set_style_pad_column(left, 4, 0);
+  lv_obj_set_flex_align(left, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_pad_column(left, 8, 0);
 
   // Ok tuvali 160 px; küçültme yerleşimi etkilemediği için sabit boyutlu kutuya konur.
   const int32_t arrow_px = UI_MAP_ARROW_PX;
@@ -565,9 +563,7 @@ static void build_map_view(lv_obj_t *parent) {
   lv_obj_set_style_transform_pivot_x(ui.map_arrow, 0, 0);
   lv_obj_set_style_transform_pivot_y(ui.map_arrow, 0, 0);
 
-  ui.map_dist = make_label(left, &lv_font_montserrat_48, UI_COLOR_FG);
-  ui.map_dist_unit = make_label(left, &lv_font_montserrat_20, UI_COLOR_FG);
-  lv_obj_set_style_pad_bottom(ui.map_dist_unit, 9, 0);  // rakamların taban çizgisine
+  ui.map_dist = make_label(left, &lv_font_montserrat_20, UI_COLOR_FG);
 
   // Sağ: küçük LCD hız (sönük 888 + rakamlar), altında km/h
   lv_obj_t *lcd = lv_obj_create(row);

@@ -46,6 +46,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | İbre canlı kırmızı; konum işaretçisi merkezin %22 altına indi; harita üstündeki ok/mesafe kutusu ve cadde şeridi yarı saydam (%50). Kutunun yeri seçilebilir: üstte (varsayılan) veya solda/sağda dar sütun (cadde üstte şerit), `ui_map_set_layout()` / simülatörde `--layout`. Kullanıcı seçimi bekleniyor. Konumdan hesaplanan hız 160 km/h'yi geçerse sıçrama sayılıp atılıyor. |
 | 2026-10-20 | Harita yerleşimi kullanıcının seçtiği **alt** düzen oldu (varsayılan): ekranın üstü tamamen harita; ok + mesafe ve cadde alttaki yarı saydam kutuda, hız kutusu harita modunda küçülüp (DSEG7 40 px) en altta. Konum işaretçisi bu grubun hemen üstünde (merkezin %8 altı, telefon kamerayı aynı oranda kaydırıyor). Üst/sol/sağ yerleşimler `ui_map_set_layout()` ile hâlâ seçilebilir. |
 | 2026-10-20 | Harita modu sadeleşti (kullanıcı isteği): alttaki yarı saydam kutuda üst satır **sadece sokak**, alt satır (yüksekliği aynı) solda **ok + mesafe**, sağda **küçük LCD hız**. Harita modunda büyük hız kutusu ve kadranın 0/120 sayıları (kutunun köşelerine denk geliyor) gizleniyor. Konum işaretçisi kutunun hemen üstünde (%12). Üst/sol/sağ yerleşim seçenekleri kaldırıldı. |
+| 2026-10-20 | Harita modunda mesafe küçüldü: alttaki kutuda büyük ok, yanında küçük "180 m" (20 px). Yakınlığı asıl iç halka gösteriyor; 500 m ötesi için küçük mesafe kalıyor. |
 
 ---
 

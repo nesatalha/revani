@@ -53,7 +53,7 @@
 #define UI_MAP_BOX_BOTTOM 72   // kutunun alt kenarı, ekranın altından
 #define UI_MAP_OVERLAY_OPA LV_OPA_50     // ok/mesafe kutusunun saydamlığı
 #define UI_MAP_ROW_H 64      // kutunun alt satırı: ok + mesafe | hız
-#define UI_MAP_ARROW_PX 46
+#define UI_MAP_ARROW_PX 60
 
 // Halkaların açısı: alttan 90° boşluk, saat yönünde 270°
 #define UI_RING_START_ANGLE 135
