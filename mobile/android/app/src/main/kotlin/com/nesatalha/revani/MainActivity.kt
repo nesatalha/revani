@@ -117,14 +117,24 @@ class MainActivity : FlutterActivity() {
         val notifications = Build.VERSION.SDK_INT < 33 || granted(Manifest.permission.POST_NOTIFICATIONS)
         val listeners = AndroidSettings.Secure.getString(contentResolver, "enabled_notification_listeners").orEmpty()
         val me = ComponentName(this, NavNotificationReader::class.java)
+        val power = getSystemService(PowerManager::class.java)
         return mapOf(
             "bluetooth" to bluetooth,
             "location" to granted(Manifest.permission.ACCESS_FINE_LOCATION),
             "notifications" to notifications,
             "notificationAccess" to (listeners.contains(me.flattenToString()) || listeners.contains(me.flattenToShortString())),
-            "batteryOptimizationIgnored" to getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName),
+            "batteryOptimizationIgnored" to power.isIgnoringBatteryOptimizations(packageName),
+            "gpsBlockedByPowerSave" to gpsBlockedByPowerSave(power),
         )
     }
+
+    /** Güç tasarrufu modu ekran kapalıyken GPS'i kapatıyorsa (S22'de görüldü) sürüşte hız gelmez. */
+    private fun gpsBlockedByPowerSave(power: PowerManager): Boolean =
+        power.isPowerSaveMode && power.locationPowerSaveMode in setOf(
+            PowerManager.LOCATION_MODE_GPS_DISABLED_WHEN_SCREEN_OFF,
+            PowerManager.LOCATION_MODE_ALL_DISABLED_WHEN_SCREEN_OFF,
+            PowerManager.LOCATION_MODE_THROTTLE_REQUESTS_WHEN_SCREEN_OFF,
+        )
 
     private fun requestRuntimePermissions(result: MethodChannel.Result) {
         val missing = runtimePermissions().filterNot(::granted)

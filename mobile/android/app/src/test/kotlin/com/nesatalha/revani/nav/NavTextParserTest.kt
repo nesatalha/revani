@@ -93,4 +93,38 @@ class NavTextParserTest {
     fun noDistanceReturnsNull() {
         assertNull(NavTextParser.parse("Rota yeniden hesaplanıyor", null))
     }
+
+    // ---- Gerçek örnekler: Samsung S22, Android 15, Google Maps (İngilizce), 2026-10-20.
+    // Başlık mesafe, metin sadece cadde veya kısa talimat; manevra metinde yok, simgeden gelir.
+
+    @Test
+    fun realStreetOnly() {
+        val p = NavTextParser.parse("50 m", "Abdibey Sok.", "20 min · 14 km · 22:15 ETA")!!
+        assertEquals(50, p.distanceM)
+        assertEquals("Abdibey Sok.", p.street)
+        assertNull(p.maneuver)
+        assertEquals(20, p.etaMin)
+    }
+
+    @Test
+    fun realHighway() {
+        val p = NavTextParser.parse("400 m", "O-1 1. Çevre Yolu / İstanbul Çevre Yolu", "21 min · 15 km · 22:15 ETA")!!
+        assertEquals(400, p.distanceM) // alt metindeki "15 km" mesafe sanılmamalı
+        assertEquals("O-1 1. Çevre Yolu / İstanbul Çevre Yolu", p.street)
+        assertEquals(21, p.etaMin)
+    }
+
+    @Test
+    fun realToward() {
+        val p = NavTextParser.parse("30 m", "toward Abdibey Sok.")!!
+        assertEquals("Abdibey Sok.", p.street)
+    }
+
+    @Test
+    fun realHeadAtRouteStart() {
+        val p = NavTextParser.parse("0 m", "Head northeast")!!
+        assertEquals(0, p.distanceM)
+        assertEquals("", p.street)
+        assertEquals(Maneuver.STRAIGHT, p.maneuver)
+    }
 }

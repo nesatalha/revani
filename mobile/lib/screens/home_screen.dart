@@ -84,6 +84,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onTap: () => _push(const PermissionsScreen()),
                 ),
               ),
+            if (_permissions?.gpsBlockedByPowerSave ?? false)
+              const Card(
+                child: ListTile(
+                  leading: Icon(Icons.battery_saver),
+                  title: Text('Güç tasarrufu açık'),
+                  subtitle: Text(
+                    'Ekran kapanınca GPS duruyor, sürüşte hız gelmez. '
+                    'Sürüşten önce Güç tasarrufunu kapat.',
+                  ),
+                ),
+              ),
             Card(
               child: SwitchListTile(
                 title: const Text('Servis'),

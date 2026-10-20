@@ -14,7 +14,7 @@
 | Faz | Durum | Tamamlanan |
 |---|---|---|
 | Faz 0: Hazırlık | 🟨 Devam ediyor | 9 / 10 |
-| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 26 / 36 |
+| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 27 / 36 |
 | Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
@@ -35,6 +35,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | 1.5 Flutter arayüzü yazıldı (ana ekran, izinler, eşleştirme, ayarlar, debug). Kanallara `stopScan`, `getSettings`, `getPermissions`, `requestRuntimePermissions` ve masada test için `setFakeNav` eklendi (bölüm 3.2). Çalışma zamanı izinleri paket yerine Kotlin'den isteniyor. Emülatörde denendi: servis foreground (connectedDevice + location) başlıyor, sahte navigasyon debug ekranına akıyor. BLE tarama/bağlanma gerçek telefon ve kart olmadan denenmedi. |
 | 2026-10-20 | 1.3 ESP32 BLE yazıldı (NimBLE, kuyruk, STATUS her 10 sn ve abone olununca, kopunca bekleme ekranı ve yeniden yayın). Ayrıştırıcı ortak `firmware/protocol/` klasöründe, simülatörde C testleri ve ham paket sahneleriyle (`ble`, `ble-end`) doğrulandı. **Kart olmadığı için gerçek BLE denenmedi**, sadece `pio run` ile derleniyor. 1.3.4 açık: pil ölçümü yok. |
 | 2026-10-20 | Test telefonu: Samsung Galaxy S22 (SM-S901E), Android 15. USB hata ayıklama açık, debug APK kuruldu. |
+| 2026-10-20 | S22'de gerçek cihaz testi. Servis foreground (connectedDevice + location) başlıyor, ekran kapalı 2 dk sonra da çalışıyor. **Google Maps bildirimi:** başlık mesafe (`50 m`), metin sadece cadde (`Abdibey Sok.`), `toward …` veya `Head northeast`, alt metin `20 min · 14 km · 22:15 ETA`. Metinde manevra yok, ok yalnız simgeden (108×108) çıkıyor. 4 simge şablon olarak eklendi, canlı eşleşme doğrulandı (sağ, sol). **Güç tasarrufu** açıkken Samsung ekran kapanınca GPS'i kapatıyor (`GPS_DISABLED_WHEN_SCREEN_OFF`); uygulama ana ekranda uyarı gösteriyor, sürüşte kapalı olmalı. BLE ve 1.6 testleri kart bekliyor. |
 
 ---
 
@@ -298,7 +299,7 @@ Dış halkanın hemen içinde, ince bir halka.
 - [x] 1.4.5 `Protocol.kt`: mesaj kodlama (NAV, NAV_END, GPS, TIME)
 - [x] 1.4.6 `NavNotificationReader`: `com.google.android.apps.maps` bildirimlerini dinle
 - [x] 1.4.7 Bildirimden mesafe ve cadde adını ayrıştır (uzun adları kısalt: Caddesi → Cd., Sokağı → Sk., Bulvarı → Bulv.)
-- [ ] 1.4.8 `ManeuverMatcher`: bildirimin büyük simgesinden manevra tipini çıkar (küçültme + şablon karşılaştırma). Altyapı hazır; **şablonlar gerçek cihazdan toplanacak**: tanınmayan simgeler uygulamanın `files/maneuver_icons/` klasörüne kaydediliyor, etiketlenip `assets/maneuver_templates/<kod>_<çıkış>_<ad>.png` olarak eklenecek. O zamana kadar manevra bildirim metninden çıkarılıyor.
+- [x] 1.4.8 `ManeuverMatcher`: bildirimin büyük simgesinden manevra tipini çıkar (küçültme + şablon karşılaştırma). Gerçek simgeyle tanınan: düz (rota başı), sağ, hafif sol, sol (`mobile/android/app/src/main/assets/maneuver_templates/`). **Eksik şablonlar sürüş/yürüyüş sırasında toplanacak:** düz, hafif sağ, keskin sağ/sol, U dönüşü, dönel kavşak (çıkışlarıyla), varış. Tanınmayan simgeler telefonda `files/maneuver_icons/` altına kaydediliyor.
 - [x] 1.4.9 Navigasyon bildirimi kaybolunca `NAV_END` gönder
 - [x] 1.4.10 `LocationSource`: GPS hızı ve yönü, 1 Hz `GPS` mesajı
 - [x] 1.4.11 Bağlanınca `TIME` gönder

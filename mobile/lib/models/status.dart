@@ -119,6 +119,7 @@ class PermissionState {
     this.notifications = false,
     this.notificationAccess = false,
     this.batteryOptimizationIgnored = false,
+    this.gpsBlockedByPowerSave = false,
   });
 
   factory PermissionState.fromMap(Map<Object?, Object?> m) => PermissionState(
@@ -128,6 +129,7 @@ class PermissionState {
     notificationAccess: m['notificationAccess'] as bool? ?? false,
     batteryOptimizationIgnored:
         m['batteryOptimizationIgnored'] as bool? ?? false,
+    gpsBlockedByPowerSave: m['gpsBlockedByPowerSave'] as bool? ?? false,
   );
 
   final bool bluetooth;
@@ -135,6 +137,9 @@ class PermissionState {
   final bool notifications;
   final bool notificationAccess;
   final bool batteryOptimizationIgnored;
+
+  /// Güç tasarrufu açık ve ekran kapanınca GPS'i kapatıyor.
+  final bool gpsBlockedByPowerSave;
 
   bool get runtimeGranted => bluetooth && location && notifications;
   bool get allGranted =>
