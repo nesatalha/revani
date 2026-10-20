@@ -13,7 +13,7 @@
 
 | Faz | Durum | Tamamlanan |
 |---|---|---|
-| Faz 0: Hazırlık | ⬜ Başlamadı | 0 / 10 |
+| Faz 0: Hazırlık | 🟨 Devam ediyor | 6 / 10 |
 | Faz 1: Navigasyon MVP | ⬜ Başlamadı | 0 / 36 |
 | Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
@@ -28,6 +28,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 |---|---|
 | 2026-10-20 | Plan oluşturuldu. Mimari: Flutter arayüz + Kotlin servis. |
 | 2026-10-20 | Dış halka OBD gelene kadar **GPS hızını** gösterecek. Dönüşe kalan mesafe **ince iç halkaya** taşındı. İç halkanın gerekli olup olmadığına yol testinde karar verilecek (adım 1.6.5). |
+| 2026-10-20 | Paket adı `com.nesatalha.revani` olarak belirlendi. `sdl2`, `cmake` ve PlatformIO Core (CLI) Homebrew ile kuruldu. VS Code şu an `~/Downloads` içinde; `/Applications`'a taşıyıp PlatformIO eklentisini kurmak isteğe bağlı (CLI derleme için yeterli). `flutter doctor`: Android lisansları kabul edilmemiş (`flutter doctor --android-licenses`). |
 
 ---
 
@@ -140,7 +141,7 @@ revani/
 │   │   ├── channels/            # MethodChannel / EventChannel sarmalayıcıları
 │   │   ├── screens/             # home, pairing, settings, debug
 │   │   └── models/              # Status, NavInfo, Settings
-│   └── android/app/src/main/kotlin/<paket>/
+│   └── android/app/src/main/kotlin/com/nesatalha/revani/
 │       ├── MainActivity.kt      # kanalları kaydeder
 │       ├── RevaniService.kt     # foreground service
 │       ├── ble/DashLink.kt
@@ -237,13 +238,13 @@ Dış halkanın hemen içinde, ince bir halka.
 **Süre:** 1–2 akşam · **Alışveriş:** 2.8" kart
 
 - [ ] 0.1 Motorobit'ten 2.8" kartı sipariş et
-- [ ] 0.2 VS Code + PlatformIO kur
-- [ ] 0.3 Android Studio kur (Kotlin tarafı ve Android SDK için)
-- [ ] 0.4 Flutter SDK güncel mi kontrol et (`flutter doctor`)
-- [ ] 0.5 LVGL simülatörü bağımlılıkları: `brew install sdl2 cmake`
+- [x] 0.2 VS Code + PlatformIO kur
+- [x] 0.3 Android Studio kur (Kotlin tarafı ve Android SDK için)
+- [x] 0.4 Flutter SDK güncel mi kontrol et (`flutter doctor`)
+- [x] 0.5 LVGL simülatörü bağımlılıkları: `brew install sdl2 cmake`
 - [ ] 0.6 Android cihazda geliştirici seçenekleri ve USB hata ayıklamayı aç
-- [ ] 0.7 Repo klasör yapısını oluştur (bölüm 3.3)
-- [ ] 0.8 `mobile/` altında Flutter projesini oluştur (`flutter create --org <org> --platforms android revani`)
+- [x] 0.7 Repo klasör yapısını oluştur (bölüm 3.3)
+- [x] 0.8 `mobile/` altında Flutter projesini oluştur (`flutter create --org com.nesatalha --platforms android --project-name revani mobile`)
 - [ ] 0.9 `firmware/` altında PlatformIO projesini oluştur
 - [ ] 0.10 BLE servis ve karakteristik UUID'lerini üret, bölüm 4'e yaz
 
@@ -528,7 +529,7 @@ Ek alışveriş yok.
 - [ ] Cepteki Android cihaz ana telefon mu, ikinci bir cihaz mı?
 - [ ] Ana telefon iPhone mu? (Faz 4'ü etkiler)
 - [ ] Ekranın gidondaki yeri (panelin solu, sağı, üstü)
-- [ ] Flutter/Android paket adı ve organizasyon (`com.xxx.revani`)
+- [x] Flutter/Android paket adı ve organizasyon: `com.nesatalha.revani`
 - [ ] İç mesafe halkası gerekli mi? (adım 1.6.5'te karar verilecek)
 - [ ] OBD soketi fotoğrafı (Faz 5'ten önce)
 
