@@ -14,7 +14,7 @@ object MapMath {
      * Konum karenin ortasında değil bu oranda (kare yüksekliğinin) altında: önümüzdeki yol
      * daha çok görünür. Firmware'de UI_MAP_MARKER_OFFSET_PCT ile aynı olmalı.
      */
-    const val MARKER_OFFSET_FRAC = 0.08
+    const val MARKER_OFFSET_FRAC = 0.12
 
     /** Hıza göre zoom (2.1.5): 30 km/h ve altı 16, 80 km/h ve üstü 14.5, arası doğrusal. */
     fun zoomFor(speedKmh: Int): Double {

@@ -45,13 +45,15 @@
 
 // Harita (Faz 2): telefondan gelen kare bu çapa büyütülüp daire içinde gösterilir
 #define UI_MAP_DIAMETER 328
-#define UI_MAP_TIMEOUT_MS 5000
+#define UI_MAP_TIMEOUT_MS 5000  // bu süre kare gelmezse büyük oklu görünüme dön
 // Konum işaretçisi merkezin bu kadar (harita çapının %'si) altında: önümüzdeki yol daha
 // çok görünsün. Telefon kamerayı aynı oranda ileri kaydırır (MapMath.MARKER_OFFSET_FRAC).
-#define UI_MAP_MARKER_OFFSET_PCT 8  // alttaki grubun hemen üstü
-#define UI_MAP_BOTTOM_BOX_W 250  // alttaki kutu (dial sayıları 0 ve 120'ye değmesin)
+#define UI_MAP_MARKER_OFFSET_PCT 12  // alttaki kutunun hemen üstü
+#define UI_MAP_BOX_W 272       // alttaki kutu (harita modunda kadranın 0/120 sayıları gizlenir)
+#define UI_MAP_BOX_BOTTOM 72   // kutunun alt kenarı, ekranın altından
 #define UI_MAP_OVERLAY_OPA LV_OPA_50     // ok/mesafe kutusunun saydamlığı
-#define UI_MAP_LAYOUT_DEFAULT UI_MAP_LAYOUT_BOTTOM  // bu süre kare gelmezse büyük oklu görünüme dön
+#define UI_MAP_ROW_H 64      // kutunun alt satırı: ok + mesafe | hız
+#define UI_MAP_ARROW_PX 46
 
 // Halkaların açısı: alttan 90° boşluk, saat yönünde 270°
 #define UI_RING_START_ANGLE 135
