@@ -14,7 +14,7 @@
 | Faz | Durum | Tamamlanan |
 |---|---|---|
 | Faz 0: Hazırlık | 🟨 Devam ediyor | 8 / 10 |
-| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 22 / 36 |
+| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 26 / 36 |
 | Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
@@ -33,6 +33,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Faz 1.1 simülatörde tamamlandı (`firmware/simulator/`, SDL2 + CMake). Türkçe karakterli fontlar Montserrat Medium'dan üretildi (`firmware/ui/fonts/generate.sh`). İç halka `firmware/ui/ui_config.h` içindeki `UI_INNER_RING_ENABLED` ile tek satırda kapatılabilir (1.6.5 için). Cadde adı ekranda tek satır, sığmazsa "…" ile kesiliyor; bu yüzden 1.4.7'ye kısaltma eklendi. |
 | 2026-10-20 | 1.4 Kotlin servisi yazıldı; JVM birim testleri (protokol, bildirim ayrıştırma, kısaltma, simge eşleştirme) geçiyor. **Telefon hazır olmadığı için (0.6) cihazda denenmedi**: 1.4.x adımları derlenip birim testleri geçtiği için işaretlendi, gerçek doğrulama 1.6 testlerinde. Bildirim metni biçimleri tahmini, 1.6.1'de gerçek örneklerle testler genişletilecek. `minSdk` 26. Konum için Play Services yerine `LocationManager`. |
 | 2026-10-20 | 1.5 Flutter arayüzü yazıldı (ana ekran, izinler, eşleştirme, ayarlar, debug). Kanallara `stopScan`, `getSettings`, `getPermissions`, `requestRuntimePermissions` ve masada test için `setFakeNav` eklendi (bölüm 3.2). Çalışma zamanı izinleri paket yerine Kotlin'den isteniyor. Emülatörde denendi: servis foreground (connectedDevice + location) başlıyor, sahte navigasyon debug ekranına akıyor. BLE tarama/bağlanma gerçek telefon ve kart olmadan denenmedi. |
+| 2026-10-20 | 1.3 ESP32 BLE yazıldı (NimBLE, kuyruk, STATUS her 10 sn ve abone olununca, kopunca bekleme ekranı ve yeniden yayın). Ayrıştırıcı ortak `firmware/protocol/` klasöründe, simülatörde C testleri ve ham paket sahneleriyle (`ble`, `ble-end`) doğrulandı. **Kart olmadığı için gerçek BLE denenmedi**, sadece `pio run` ile derleniyor. 1.3.4 açık: pil ölçümü yok. |
 
 ---
 
@@ -193,7 +194,9 @@ UUID'ler firmware'de `firmware/src/ble_uuids.h` içinde; Kotlin tarafında da ay
 | `0x08` | NAV_END | (boş) | 1 |
 | `0x09` | GPS | `u8 hız_kmh, u16 yön_derece` | 1 |
 | `0x81` | BUTTON (ESP32 → Android) | `u8 buton_no, u8 tip (0 kısa, 1 uzun)` | 3 |
-| `0x82` | STATUS (ESP32 → Android) | `u8 pil_yüzde, u8 ekran_no` | 1 |
+| `0x82` | STATUS (ESP32 → Android) | `u8 pil_yüzde (0xFF = bilinmiyor), u8 ekran_no (0 bekleme, 1 navigasyon)` | 1 |
+
+Ayrıştırıcı `firmware/protocol/` altında; Kotlin (`ProtocolTest`) ve C (`protocol_test`) testleri aynı bayt örneklerini kullanır.
 
 **Manevra kodları:** 0 düz, 1 hafif sağ, 2 sağ, 3 keskin sağ, 4 U dönüşü, 5 hafif sol, 6 sol, 7 keskin sol, 8 dönel kavşak (çıkış no ile), 9 varış.
 
@@ -279,11 +282,11 @@ Dış halkanın hemen içinde, ince bir halka.
 
 ### 1.3 ESP32 BLE
 
-- [ ] 1.3.1 NimBLE ile servis ve RX/TX karakteristikleri
-- [ ] 1.3.2 Gelen mesajı tipine göre ayrıştır (NAV, NAV_END, GPS, TIME)
-- [ ] 1.3.3 LVGL'i BLE callback'inden değil ana döngüden güncelle (kuyruk ile)
-- [ ] 1.3.4 STATUS mesajı ile pil yüzdesini gönder
-- [ ] 1.3.5 Bağlantı kopunca bekleme ekranına dön, yeniden yayına başla
+- [x] 1.3.1 NimBLE ile servis ve RX/TX karakteristikleri
+- [x] 1.3.2 Gelen mesajı tipine göre ayrıştır (NAV, NAV_END, GPS, TIME)
+- [x] 1.3.3 LVGL'i BLE callback'inden değil ana döngüden güncelle (kuyruk ile)
+- [ ] 1.3.4 STATUS mesajı ile pil yüzdesini gönder (mesaj gidiyor; pil ölçülemediği için şimdilik `0xFF` = bilinmiyor. Pil ölçümü kart gelince, 3.1 ile)
+- [x] 1.3.5 Bağlantı kopunca bekleme ekranına dön, yeniden yayına başla
 
 ### 1.4 Kotlin servisi
 

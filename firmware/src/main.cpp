@@ -1,23 +1,56 @@
 // Revani — ESP32-S3 ana programı.
 //
-// Şimdilik derlenebilir iskelet: LVGL ve arayüz başlatılıyor, ekran sürücüsü
-// (ST7701, adım 1.2.2) ve BLE servisi (adım 1.3.1) henüz yok.
+// BLE olayları kuyruktan ana döngüde işlenir, LVGL yalnız buradan güncellenir.
+// Ekran sürücüsü (ST7701) henüz yok: adım 1.2.2.
 
 #include <Arduino.h>
-#include <NimBLEDevice.h>
 #include <lvgl.h>
 
-#include "ble_uuids.h"
+#include "ble_link.h"
+#include "protocol.h"
 #include "ui.h"
+#include "ui_proto.h"
 
 static constexpr uint32_t kScreenSize = 480;
 static constexpr uint32_t kBufLines = 48;
+static constexpr uint32_t kStatusPeriodMs = 10000;
 
 static uint32_t tick_cb() { return millis(); }
 
 // Geçici: ST7701 sürücüsü gelene kadar çizilen alanı hiçbir yere göndermiyor.
 static void flush_cb(lv_display_t *disp, const lv_area_t *, uint8_t *) {
   lv_display_flush_ready(disp);
+}
+
+// Pil ölçümü kart gelince (pil konnektörü ve ADC pini, adım 3.1).
+static uint8_t battery_percent() { return PROTO_BATTERY_UNKNOWN; }
+
+static void send_status() {
+  uint8_t msg[3];
+  size_t len = proto_encode_status(msg, battery_percent(), ui_proto_screen());
+  ble_link_notify(msg, len);
+}
+
+static void handle_ble_events() {
+  static BleEvent ev;
+  while (ble_link_poll(&ev)) {
+    switch (ev.kind) {
+      case BleEventKind::Connected:
+        ui_set_connected(true);
+        break;
+      case BleEventKind::Disconnected:
+        ui_set_connected(false);  // navigasyon da biter, bekleme ekranı (1.3.5)
+        break;
+      case BleEventKind::Subscribed:
+        send_status();
+        break;
+      case BleEventKind::Data: {
+        proto_result_t r = ui_proto_handle(ev.data, ev.len);
+        if (r != PROTO_OK) Serial.printf("Mesaj 0x%02x: %s\n", ev.len ? ev.data[0] : 0, proto_result_str(r));
+        break;
+      }
+    }
+  }
 }
 
 void setup() {
@@ -33,12 +66,21 @@ void setup() {
   lv_display_set_flush_cb(disp, flush_cb);
 
   ui_init();
-
-  NimBLEDevice::init("Revani");
-  Serial.printf("Revani hazir, servis %s\n", REVANI_BLE_SERVICE_UUID);
+  ui_set_battery(battery_percent());
+  ui_proto_init();
+  ble_link_begin("Revani");
+  Serial.println("Revani hazir");
 }
 
 void loop() {
+  handle_ble_events();
+
+  static uint32_t last_status = 0;
+  if (ble_link_connected() && millis() - last_status > kStatusPeriodMs) {
+    last_status = millis();
+    send_status();
+  }
+
   uint32_t wait_ms = lv_timer_handler();
   delay(wait_ms < 5 ? wait_ms : 5);
 }

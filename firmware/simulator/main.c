@@ -4,7 +4,7 @@
 //   revani_sim --shot out.bmp [--scene S] [--ms N]
 //                                               penceresiz çizer, ekran görüntüsü yazar
 //
-// Sahneler: idle, connected, nav, near, turn, far, gps-lost, arrows, fake
+// Sahneler: idle, connected, nav, near, turn, far, gps-lost, arrows, fake, ble
 
 #include <lvgl.h>
 #include <stdio.h>
@@ -18,6 +18,7 @@
 #include "ui_arrows.h"
 #include "ui_config.h"
 #include "ui_fake.h"
+#include "ui_proto.h"
 
 #define W UI_SCREEN_SIZE
 #define H UI_SCREEN_SIZE
@@ -122,6 +123,30 @@ static int headless(const char *out, const char *scene, uint32_t ms) {
   } else if (!strcmp(scene, "arrows")) {
     scene_arrows();
     mask = false;
+  } else if (!strcmp(scene, "ble")) {
+    // Android'in göndereceği ham paketler (Protocol.kt ile aynı baytlar)
+    static const uint8_t time_msg[] = {0x07, 0xc0, 0x57, 0xd7, 0x6a, 0xb4, 0x00};  // 15:00 (UTC+3)
+    static const uint8_t gps_msg[] = {0x09, 0x2f, 0x0e, 0x01};                     // 47 km/h
+    static const uint8_t nav_msg[] = {0x02, 0x02, 0x00, 0xb4, 0x00, 0x0c, 0x00, 0x0b, 0x42, 0x61,
+                                      0xc4, 0x9f, 0x64, 0x61, 0x74, 0x20, 0x43, 0x64, 0x2e};
+    ui_proto_init();
+    ui_set_connected(true);
+    const uint8_t *msgs[] = {time_msg, gps_msg, nav_msg};
+    const size_t lens[] = {sizeof time_msg, sizeof gps_msg, sizeof nav_msg};
+    for (int i = 0; i < 3; i++) {
+      proto_result_t r = ui_proto_handle(msgs[i], lens[i]);
+      if (r != PROTO_OK) fprintf(stderr, "paket %d: %s\n", i, proto_result_str(r));
+    }
+  } else if (!strcmp(scene, "ble-end")) {
+    static const uint8_t time_msg[] = {0x07, 0xc0, 0x57, 0xd7, 0x6a, 0xb4, 0x00};
+    static const uint8_t nav_msg[] = {0x02, 0x06, 0x00, 0x32, 0x00, 0x00, 0x00, 0x00};
+    static const uint8_t end_msg[] = {0x08};
+    ui_proto_init();
+    ui_set_connected(true);
+    ui_proto_handle(time_msg, sizeof time_msg);
+    ui_proto_handle(nav_msg, sizeof nav_msg);
+    run_for(500);
+    ui_proto_handle(end_msg, sizeof end_msg);
   } else if (!strcmp(scene, "fake")) {
     ui_fake_start(1);
   } else {

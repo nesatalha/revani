@@ -37,6 +37,7 @@ typedef struct {
   lv_obj_t *idle_page;
   lv_obj_t *clock;
   lv_obj_t *status;
+  lv_obj_t *battery_row;
   lv_obj_t *battery_fill;
   lv_obj_t *battery_label;
   bool connected;
@@ -235,6 +236,8 @@ void ui_set_nav(const ui_nav_t *nav) {
   dist_ring_update(nav->maneuver != UI_MANEUVER_ARRIVE, nav->distance_m);
 }
 
+bool ui_nav_active(void) { return ui.nav_active; }
+
 void ui_end_nav(void) {
   show_page(false);
   dist_ring_update(false, 0);
@@ -277,7 +280,11 @@ void ui_set_time(uint8_t hour, uint8_t minute) {
 #define BATTERY_BORDER 3
 
 void ui_set_battery(uint8_t percent) {
-  if (percent > 100) percent = 100;
+  if (percent > 100) {  // bilinmiyor (ölçüm yok): pil hiç gösterilmez
+    lv_obj_add_flag(ui.battery_row, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
+  lv_obj_remove_flag(ui.battery_row, LV_OBJ_FLAG_HIDDEN);
   int32_t inner = BATTERY_W - 2 * BATTERY_BORDER - 4;
   lv_obj_set_width(ui.battery_fill, LV_MAX(2, inner * percent / 100));
   uint32_t c = percent <= 20 ? UI_COLOR_YELLOW : UI_COLOR_FG;
@@ -287,6 +294,7 @@ void ui_set_battery(uint8_t percent) {
 
 static void build_battery(lv_obj_t *parent) {
   lv_obj_t *row = lv_obj_create(parent);
+  ui.battery_row = row;
   lv_obj_remove_style_all(row);
   lv_obj_set_size(row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
@@ -377,7 +385,7 @@ void ui_init(void) {
   apply_gps_style();
   lv_timer_create(gps_watchdog_cb, 250, NULL);
 
-  ui_set_battery(100);
+  ui_set_battery(0xFF);  // ölçülene kadar gizli
   ui_set_connected(false);
   show_page(false);
 }

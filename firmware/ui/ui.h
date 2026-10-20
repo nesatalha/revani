@@ -41,9 +41,11 @@ void ui_end_nav(void);
 // GPS mesajı (~1 Hz). UI_GPS_TIMEOUT_MS boyunca gelmezse halka grileşir.
 void ui_set_gps(uint8_t speed_kmh, uint16_t heading_deg);
 void ui_set_time(uint8_t hour, uint8_t minute);
+// 0–100; 100'den büyükse (ör. 0xFF) pil bilinmiyor, gösterilmez.
 void ui_set_battery(uint8_t percent);
 // Bağlantı koparsa navigasyon da biter.
 void ui_set_connected(bool connected);
+bool ui_nav_active(void);
 
 #ifdef __cplusplus
 }
