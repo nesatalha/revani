@@ -29,7 +29,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Plan oluşturuldu. Mimari: Flutter arayüz + Kotlin servis. |
 | 2026-10-20 | Dış halka OBD gelene kadar **GPS hızını** gösterecek. Dönüşe kalan mesafe **ince iç halkaya** taşındı. İç halkanın gerekli olup olmadığına yol testinde karar verilecek (adım 1.6.5). |
 | 2026-10-20 | Paket adı `com.nesatalha.revani` olarak belirlendi. `sdl2`, `cmake` ve PlatformIO Core (CLI) Homebrew ile kuruldu. VS Code şu an `~/Downloads` içinde; `/Applications`'a taşıyıp PlatformIO eklentisini kurmak isteğe bağlı (CLI derleme için yeterli). `flutter doctor`: Android lisansları kabul edilmemiş (`flutter doctor --android-licenses`). |
-| 2026-10-20 | BLE UUID'leri üretildi (bölüm 4). Firmware: PlatformIO `espressif32@6.9.0` + Arduino, LVGL **9.2.2** (kart ve simülatörde aynı sürüm), NimBLE-Arduino 2.x. |
+| 2026-10-20 | BLE UUID'leri üretildi (bölüm 4). Firmware: PlatformIO `espressif32@6.9.0` + Arduino (2026-10-21'de core 3.x'e geçildi), LVGL **9.2.2** (kart ve simülatörde aynı sürüm), NimBLE-Arduino 2.x. |
 | 2026-10-20 | Faz 1.1 simülatörde tamamlandı (`firmware/simulator/`, SDL2 + CMake). Türkçe karakterli fontlar Montserrat Medium'dan üretildi (`firmware/ui/fonts/generate.sh`). İç halka `firmware/ui/ui_config.h` içindeki `UI_INNER_RING_ENABLED` ile tek satırda kapatılabilir (1.6.5 için). Cadde adı ekranda tek satır, sığmazsa "…" ile kesiliyor; bu yüzden 1.4.7'ye kısaltma eklendi. |
 | 2026-10-20 | 1.4 Kotlin servisi yazıldı; JVM birim testleri (protokol, bildirim ayrıştırma, kısaltma, simge eşleştirme) geçiyor. **Telefon hazır olmadığı için (0.6) cihazda denenmedi**: 1.4.x adımları derlenip birim testleri geçtiği için işaretlendi, gerçek doğrulama 1.6 testlerinde. Bildirim metni biçimleri tahmini, 1.6.1'de gerçek örneklerle testler genişletilecek. `minSdk` 26. Konum için Play Services yerine `LocationManager`. |
 | 2026-10-20 | 1.5 Flutter arayüzü yazıldı (ana ekran, izinler, eşleştirme, ayarlar, debug). Kanallara `stopScan`, `getSettings`, `getPermissions`, `requestRuntimePermissions` ve masada test için `setFakeNav` eklendi (bölüm 3.2). Çalışma zamanı izinleri paket yerine Kotlin'den isteniyor. Emülatörde denendi: servis foreground (connectedDevice + location) başlıyor, sahte navigasyon debug ekranına akıyor. BLE tarama/bağlanma gerçek telefon ve kart olmadan denenmedi. |
@@ -47,7 +47,8 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Harita yerleşimi kullanıcının seçtiği **alt** düzen oldu (varsayılan): ekranın üstü tamamen harita; ok + mesafe ve cadde alttaki yarı saydam kutuda, hız kutusu harita modunda küçülüp (DSEG7 40 px) en altta. Konum işaretçisi bu grubun hemen üstünde (merkezin %8 altı, telefon kamerayı aynı oranda kaydırıyor). Üst/sol/sağ yerleşimler `ui_map_set_layout()` ile hâlâ seçilebilir. |
 | 2026-10-20 | Harita modu sadeleşti (kullanıcı isteği): alttaki yarı saydam kutuda üst satır **sadece sokak**, alt satır (yüksekliği aynı) solda **ok + mesafe**, sağda **küçük LCD hız**. Harita modunda büyük hız kutusu ve kadranın 0/120 sayıları (kutunun köşelerine denk geliyor) gizleniyor. Konum işaretçisi kutunun hemen üstünde (%12). Üst/sol/sağ yerleşim seçenekleri kaldırıldı. |
 | 2026-10-20 | Harita modunda mesafe küçüldü: alttaki kutuda büyük ok, yanında küçük "180 m" (20 px). Yakınlığı asıl iç halka gösteriyor; 500 m ötesi için küçük mesafe kalıyor. |
-| 2026-10-20 | Kart Waveshare wiki'siyle kontrol edildi: Motorobit SKU 30254 dokunmatiksiz ESP32-S3-LCD-2.8C, doğru kart. Type-C bir CH343P USB-UART (UART0, GPIO43/44) üzerinden bağlı, bu yüzden `ARDUINO_USB_CDC_ON_BOOT=0` yapıldı. Kart notları: pil ADC GPIO4, pil konnektörü MX1.25 (şarj devresi + güç düğmesi var); boş GPIO yalnız 0/19/20 (43/44 USB-UART'ta); I2C GPIO7/15; TCA9554 dolu; QMI8658 IMU, PCF85063 RTC, TF yuvası ve buzzer (EXIO8) kullanılabilir. Arduino core 3.x (pioarduino) geçişi denendi ama **disk dolu** olduğu için paket kurulamadı; 1.2.2'den önce yapılacak. |
+| 2026-10-20 | Kart Waveshare wiki'siyle kontrol edildi: Motorobit SKU 30254 dokunmatiksiz ESP32-S3-LCD-2.8C, doğru kart. Type-C bir CH343P USB-UART (UART0, GPIO43/44) üzerinden bağlı, bu yüzden `ARDUINO_USB_CDC_ON_BOOT=0` yapıldı. Kart notları: pil ADC GPIO4, pil konnektörü MX1.25 (şarj devresi + güç düğmesi var); boş GPIO yalnız 0/19/20 (43/44 USB-UART'ta); I2C GPIO7/15; TCA9554 dolu; QMI8658 IMU, PCF85063 RTC, TF yuvası ve buzzer (EXIO8) kullanılabilir. Arduino core 3.x (pioarduino) geçişi denendi ama **disk dolu** olduğu için paket kurulamadı. |
+| 2026-10-21 | Firmware **Arduino core 3.1.3 / ESP-IDF 5.3** (pioarduino `53.03.13`) üzerinde. LVGL 9.2.2 ve NimBLE-Arduino 2.5.1 derleniyor; `qio_opi` (oktal PSRAM) kütüphaneleri bağlanıyor. NimBLE 2.x'te gereksizleşen `service->start()` kaldırıldı. Simülatör etkilenmedi. |
 
 ---
 
@@ -295,7 +296,7 @@ Dış halkanın hemen içinde, ince bir halka.
 ### 1.2 Kart geldiğinde
 
 - [ ] 1.2.1 Waveshare ESP32-S3-LCD-2.8C demosunu yükle, ekranın çalıştığını gör
-- [ ] 1.2.2 ST7701 (RGB) sürücü ve pin ayarlarını kendi projene al. **Önce** PlatformIO'yu Arduino core 3.x / ESP-IDF 5.x'e (pioarduino) geçir: bounce buffer + PSRAM'den XIP, BLE sırasında ekran kaymasını önler.
+- [ ] 1.2.2 ST7701 (RGB) sürücü ve pin ayarlarını kendi projene al. (PlatformIO artık Arduino core 3.x / ESP-IDF 5.x'te: bounce buffer + PSRAM'den XIP kullanılabilir, BLE sırasında ekran kaymasını önler.)
 - [ ] 1.2.3 Simülatördeki arayüzü karta taşı (ortak `ui/` klasörü)
 
 ### 1.3 ESP32 BLE

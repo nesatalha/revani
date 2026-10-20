@@ -65,7 +65,6 @@ void ble_link_begin(const char *name) {
   rx->setCallbacks(new RxCallbacks());
   tx = service->createCharacteristic(REVANI_BLE_TX_UUID, NIMBLE_PROPERTY::NOTIFY);
   tx->setCallbacks(new TxCallbacks());
-  service->start();
 
   NimBLEAdvertising *adv = NimBLEDevice::getAdvertising();
   adv->addServiceUUID(REVANI_BLE_SERVICE_UUID);
