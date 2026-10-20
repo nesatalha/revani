@@ -14,7 +14,7 @@
 | Faz | Durum | Tamamlanan |
 |---|---|---|
 | Faz 0: Hazırlık | 🟨 Devam ediyor | 9 / 10 |
-| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 27 / 36 |
+| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 27 / 43 |
 | Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
@@ -37,6 +37,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Test telefonu: Samsung Galaxy S22 (SM-S901E), Android 15. USB hata ayıklama açık, debug APK kuruldu. |
 | 2026-10-20 | S22'de gerçek cihaz testi. Servis foreground (connectedDevice + location) başlıyor, ekran kapalı 2 dk sonra da çalışıyor. **Google Maps bildirimi:** başlık mesafe (`50 m`), metin sadece cadde (`Abdibey Sok.`), `toward …` veya `Head northeast`, alt metin `20 min · 14 km · 22:15 ETA`. Metinde manevra yok, ok yalnız simgeden (108×108) çıkıyor. 4 simge şablon olarak eklendi, canlı eşleşme doğrulandı (sağ, sol). **Güç tasarrufu** açıkken Samsung ekran kapanınca GPS'i kapatıyor (`GPS_DISABLED_WHEN_SCREEN_OFF`); uygulama ana ekranda uyarı gösteriyor, sürüşte kapalı olmalı. BLE ve 1.6 testleri kart bekliyor. |
 
+| 2026-10-20 | Yeni adım grubu **1.7 USB köprüsü**: telefon aynı protokol baytlarını BLE yerine `adb reverse` üzerinden TCP ile Mac'teki LVGL simülatörüne gönderecek. Amaç Faz 1 ve Faz 2'yi kart gelmeden gerçek veriyle test etmek. Protokol değişmiyor, TCP'de sadece uzunluk öneki (çerçeveleme) var. |
 ---
 
 ## İçindekiler
@@ -322,12 +323,38 @@ Dış halkanın hemen içinde, ince bir halka.
 
 **✅ Faz 1 bitti sayılır:** Arabada 10 dönüşün en az 9'u doğru gösteriliyorsa.
 
+### 1.7 USB köprüsü (kart olmadan gerçek veriyle test)
+
+Telefondaki uygulama, BLE'ye gönderdiği **aynı mesaj baytlarını** USB kablosu üzerinden Mac'teki simülatöre de gönderebilir. Böylece gerçek navigasyon, GPS hızı ve (Faz 2'de) gerçek harita simülatörde görülür.
+
+```
+ Telefon                         USB (adb reverse tcp:7878)              Mac
+ RevaniService ── TcpTransport ─────────────────────────────▶ simülatör TCP sunucusu
+                                                               └─ firmware/protocol/ ayrıştırıcı
+                                                               └─ firmware/ui/ (karttakiyle aynı)
+```
+
+- **Çerçeveleme:** TCP akış olduğu için her mesajın önüne `u16 uzunluk` (little-endian) eklenir. Mesajın kendisi bölüm 4'teki ile birebir aynı.
+- Kart gelince BLE ile aynı kod yolu kullanılır. Köprü sadece geliştirme ve test içindir.
+
+- [ ] 1.7.1 Kotlin: `DashTransport` arayüzü; mevcut BLE bağlantısı `BleTransport` olarak bu arayüze taşınır
+- [ ] 1.7.2 Kotlin: `TcpTransport` (localhost:7878, uzunluk önekli çerçeve, kopunca yeniden bağlanma)
+- [ ] 1.7.3 Flutter ayarlar: "Simülatöre gönder" seçeneği ve köprü bağlantı durumu
+- [ ] 1.7.4 Simülatör: TCP sunucusu, gelen çerçeveleri ortak ayrıştırıcıya ve kuyruğa verir
+- [ ] 1.7.5 Simülatör: `STATUS` mesajını TCP üzerinden geri gönderir (sahte pil)
+- [ ] 1.7.6 Tek komutla çalıştırma betiği (`adb reverse` + simülatör)
+- [ ] 1.7.7 Ön test: gerçek Google Maps rotasında simülatörde ok, mesafe, cadde ve hız doğru görünüyor
+
+> 1.6 testleri kart ve gerçek BLE ister. Köprüyle yapılan ön testler 1.6'yı işaretlemez, sonuçları değişiklik günlüğüne yazılır.
+
 ---
 
 ## Faz 2: Ortaya harita
 
 **Süre:** ~1–2 hafta
 **Hedef:** Orta dairede yön yukarıda (heading-up) canlı harita.
+
+> Kart gelene kadar Faz 2, 1.7 USB köprüsü üzerinden simülatörde geliştirilir. ESP32'ye özgü ölçümler (JPEG çözme süresi, bellek, gerçek kare hızı) kart gelince yapılır.
 
 ### 2.1 Kotlin tarafı
 
