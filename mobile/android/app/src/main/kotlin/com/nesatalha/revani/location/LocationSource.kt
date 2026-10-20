@@ -15,6 +15,8 @@ import kotlin.math.roundToInt
 class LocationSource(
     context: Context,
     private val onFix: (speedKmh: Int, headingDeg: Int) -> Unit,
+    /** Harita merkezi için konum; GPS yokken ağ konumundan da gelir. */
+    private val onPosition: (lat: Double, lon: Double) -> Unit = { _, _ -> },
 ) {
     private val manager = context.getSystemService(LocationManager::class.java)
     private var lastHeading = 0
@@ -24,6 +26,15 @@ class LocationSource(
         // Durunca GPS yönü anlamsızlaşıyor, son yön korunur.
         if (loc.hasBearing() && speed >= MIN_SPEED_FOR_HEADING) lastHeading = loc.bearing.roundToInt() % 360
         onFix(speed, lastHeading)
+        lastGpsAt = System.currentTimeMillis()
+        onPosition(loc.latitude, loc.longitude)
+    }
+
+    private var lastGpsAt = 0L
+
+    // İç mekânda GPS yokken haritanın yine de gelmesi için kaba konum (hız vermez).
+    private val networkListener = LocationListener { loc: Location ->
+        if (System.currentTimeMillis() - lastGpsAt > NETWORK_FALLBACK_AFTER_MS) onPosition(loc.latitude, loc.longitude)
     }
 
     @SuppressLint("MissingPermission") // izin servis başlamadan kontrol ediliyor
@@ -31,15 +42,24 @@ class LocationSource(
         val m = manager ?: return false
         if (!m.isProviderEnabled(LocationManager.GPS_PROVIDER)) return false
         m.requestLocationUpdates(LocationManager.GPS_PROVIDER, INTERVAL_MS, 0f, listener, Looper.getMainLooper())
+        if (m.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            m.requestLocationUpdates(
+                LocationManager.NETWORK_PROVIDER, NETWORK_INTERVAL_MS, 0f, networkListener, Looper.getMainLooper(),
+            )
+            m.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)?.let { onPosition(it.latitude, it.longitude) }
+        }
         return true
     }
 
     fun stop() {
         manager?.removeUpdates(listener)
+        manager?.removeUpdates(networkListener)
     }
 
     companion object {
         private const val INTERVAL_MS = 1_000L
         private const val MIN_SPEED_FOR_HEADING = 5
+        private const val NETWORK_INTERVAL_MS = 5_000L
+        private const val NETWORK_FALLBACK_AFTER_MS = 5_000L
     }
 }

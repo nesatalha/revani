@@ -46,6 +46,11 @@ class _DebugScreenState extends State<DebugScreen> {
               ('cadde', nav.street),
             ],
             ('harita fps', s.mapFps.toStringAsFixed(1)),
+            (
+              'harita kare',
+              '${(s.mapBytes / 1024).toStringAsFixed(1)} KB'
+                  '${s.mapDemoStyle ? ' (demo stil)' : ''}',
+            ),
           ];
           return ListView(
             padding: const EdgeInsets.all(16),

@@ -20,20 +20,28 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(KEY_BRIDGE, false)
         set(v) = prefs.edit().putBoolean(KEY_BRIDGE, v).apply()
 
+    /** Faz 2: ekrana harita karesi gönder. */
+    var mapEnabled: Boolean
+        get() = prefs.getBoolean(KEY_MAP, true)
+        set(v) = prefs.edit().putBoolean(KEY_MAP, v).apply()
+
     fun toMap(): Map<String, Any?> = mapOf(
         KEY_AUTO_CONNECT to autoConnect,
         KEY_LAST_DEVICE to lastDeviceAddress,
         KEY_BRIDGE to bridgeEnabled,
+        KEY_MAP to mapEnabled,
     )
 
     fun apply(map: Map<*, *>) {
         (map[KEY_AUTO_CONNECT] as? Boolean)?.let { autoConnect = it }
         (map[KEY_BRIDGE] as? Boolean)?.let { bridgeEnabled = it }
+        (map[KEY_MAP] as? Boolean)?.let { mapEnabled = it }
     }
 
     companion object {
         const val KEY_AUTO_CONNECT = "autoConnect"
         const val KEY_LAST_DEVICE = "lastDeviceAddress"
         const val KEY_BRIDGE = "bridgeEnabled"
+        const val KEY_MAP = "mapEnabled"
     }
 }

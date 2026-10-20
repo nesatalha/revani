@@ -47,6 +47,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: s.autoConnect,
                   onChanged: (v) => _update(s.copyWith(autoConnect: v)),
                 ),
+                SwitchListTile(
+                  title: const Text('Harita gönder'),
+                  subtitle: const Text(
+                    'Navigasyonda ekranın ortasına canlı harita',
+                  ),
+                  value: s.mapEnabled,
+                  onChanged: (v) => _update(s.copyWith(mapEnabled: v)),
+                ),
                 StatusBuilder(
                   builder: (context, status) => SwitchListTile(
                     title: const Text('Simülatöre gönder (USB köprüsü)'),

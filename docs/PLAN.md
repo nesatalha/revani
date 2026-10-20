@@ -15,7 +15,7 @@
 |---|---|---|
 | Faz 0: Hazırlık | 🟨 Devam ediyor | 9 / 10 |
 | Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 33 / 43 |
-| Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
+| Faz 2: Ortaya harita | 🟨 Devam ediyor | 12 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
 | Faz 5: OBD ve devir | ⬜ Başlamadı | 0 / 10 |
@@ -38,6 +38,8 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | S22'de gerçek cihaz testi. Servis foreground (connectedDevice + location) başlıyor, ekran kapalı 2 dk sonra da çalışıyor. **Google Maps bildirimi:** başlık mesafe (`50 m`), metin sadece cadde (`Abdibey Sok.`), `toward …` veya `Head northeast`, alt metin `20 min · 14 km · 22:15 ETA`. Metinde manevra yok, ok yalnız simgeden (108×108) çıkıyor. 4 simge şablon olarak eklendi, canlı eşleşme doğrulandı (sağ, sol). **Güç tasarrufu** açıkken Samsung ekran kapanınca GPS'i kapatıyor (`GPS_DISABLED_WHEN_SCREEN_OFF`); uygulama ana ekranda uyarı gösteriyor, sürüşte kapalı olmalı. BLE ve 1.6 testleri kart bekliyor. |
 | 2026-10-20 | Yeni adım grubu **1.7 USB köprüsü**: telefon aynı protokol baytlarını BLE yerine `adb reverse` üzerinden TCP ile Mac'teki LVGL simülatörüne gönderecek. Amaç Faz 1 ve Faz 2'yi kart gelmeden gerçek veriyle test etmek. Protokol değişmiyor, TCP'de sadece uzunluk öneki (çerçeveleme) var. |
 | 2026-10-20 | 1.7.1–1.7.6 tamam. `DashLink` → `BleTransport` oldu, `TcpTransport` eklendi; servis mesajları her ikisine gönderiyor. `adb reverse` telefonda portu hep açık tuttuğu için köprü, simülatörden ilk `STATUS` gelince bağlı sayılıyor. S22 ile ilk deneme: Maps'in "Head northeast / 0 m" bildirimi simülatörde düz ok ve 0 m olarak göründü. |
+| 2026-10-20 | Faz 2 simülatörde: Kotlin `MapRenderer` (MapLibre `MapSnapshotter`, 240×240, JPEG q60, 480 baytlık `MAP_CHUNK` parçaları), firmware'de parça birleştirme + TjpgDec + dairesel harita (ekranda 360 px'e büyütülüyor), üstte ok/mesafe/cadde kutusu, ortada konum işaretçisi. MapTiler anahtarı `mobile/android/secrets.properties` (`maptiler.apiKey`, git dışı); yoksa demo stil. GPS yokken harita merkezi ağ konumundan. Gönderme kuyruğunda NAV/GPS harita parçalarından önce gider. |
+| 2026-10-20 | 2.3.1 için simülatör ön testi (S22 + USB köprüsü, içeride, araç kullanılmadan): gerçek MapTiler haritası simülatörde görünüyor, ok/mesafe/cadde Maps ile aynı; dönüşe 100 m kala ~2.5 kare/sn, kare ~2.6 KB (zoom 17). Hareket hâlinde yön dönmesi ve kare hızı kart ve gerçek sürüşle doğrulanacak. |
 
 ---
 
@@ -362,22 +364,22 @@ Telefondaki uygulama, BLE'ye gönderdiği **aynı mesaj baytlarını** USB kablo
 
 ### 2.1 Kotlin tarafı
 
-- [ ] 2.1.1 MapLibre Android SDK ekle
-- [ ] 2.1.2 MapTiler ücretsiz hesabı aç, API anahtarı al
-- [ ] 2.1.3 Koyu, sade bir harita stili seç
-- [ ] 2.1.4 `MapRenderer`: `MapSnapshotter` ile 240×240 görüntü (merkez GPS, yön GPS)
-- [ ] 2.1.5 Hıza göre zoom (yavaşta 17, hızlıda 15)
-- [ ] 2.1.6 JPEG kalite ~60, hedef 8–15 KB
-- [ ] 2.1.7 Parçalara bölüp `MAP_CHUNK` ile gönder
-- [ ] 2.1.8 Kare hızı: normalde 1/sn, dönüşe 100 m kala 2–3/sn
+- [x] 2.1.1 MapLibre Android SDK ekle
+- [x] 2.1.2 MapTiler ücretsiz hesabı aç, API anahtarı al
+- [x] 2.1.3 Koyu, sade bir harita stili seç (MapTiler `streets-v2-dark`; `basic-v2-dark` çok soluktu. Güneşte okunabilirlik 3.5.1'de, stil `MapRenderer.kt`'de tek satır)
+- [x] 2.1.4 `MapRenderer`: `MapSnapshotter` ile 240×240 görüntü (merkez GPS, yön GPS)
+- [x] 2.1.5 Hıza göre zoom (yavaşta 17, hızlıda 15)
+- [x] 2.1.6 JPEG kalite ~60, hedef 8–15 KB
+- [x] 2.1.7 Parçalara bölüp `MAP_CHUNK` ile gönder
+- [x] 2.1.8 Kare hızı: normalde 1/sn, dönüşe 100 m kala 2–3/sn
 
 ### 2.2 ESP32 tarafı
 
-- [ ] 2.2.1 Parçaları PSRAM'de birleştir
-- [ ] 2.2.2 JPEG çöz (`esp_jpeg` veya TJpgDec)
-- [ ] 2.2.3 Dairesel kırpılmış görüntü olarak ortaya yerleştir
-- [ ] 2.2.4 Konum işaretçisi, ok ve hızı haritanın üstüne çiz
-- [ ] 2.2.5 Eksik karede bir öncekini göster
+- [ ] 2.2.1 Parçaları PSRAM'de birleştir (birleştirme simülatörde çalışıyor; PSRAM yerleşimi, bellek ve JPEG çözme süresi kart gelince ölçülecek)
+- [x] 2.2.2 JPEG çöz (`esp_jpeg` veya TJpgDec)
+- [x] 2.2.3 Dairesel kırpılmış görüntü olarak ortaya yerleştir
+- [x] 2.2.4 Konum işaretçisi, ok ve hızı haritanın üstüne çiz
+- [x] 2.2.5 Eksik karede bir öncekini göster
 
 ### 2.3 Test
 

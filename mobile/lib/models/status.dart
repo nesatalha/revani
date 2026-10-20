@@ -60,6 +60,8 @@ class RevaniStatus {
     this.gpsSpeed,
     this.gpsHeading,
     this.mapFps = 0,
+    this.mapBytes = 0,
+    this.mapDemoStyle = false,
     this.errors = const [],
   });
 
@@ -80,6 +82,8 @@ class RevaniStatus {
     gpsSpeed: m['gpsSpeed'] as int?,
     gpsHeading: m['gpsHeading'] as int?,
     mapFps: (m['mapFps'] as num?)?.toDouble() ?? 0,
+    mapBytes: m['mapBytes'] as int? ?? 0,
+    mapDemoStyle: m['mapDemoStyle'] as bool? ?? false,
     errors: (m['errors'] as List<Object?>? ?? const []).cast<String>(),
   );
 
@@ -96,6 +100,10 @@ class RevaniStatus {
   final int? gpsSpeed;
   final int? gpsHeading;
   final double mapFps;
+  final int mapBytes;
+
+  /// MapTiler anahtarı yok, demo stil kullanılıyor.
+  final bool mapDemoStyle;
   final List<String> errors;
 }
 
@@ -156,12 +164,14 @@ class RevaniSettings {
     this.autoConnect = true,
     this.lastDeviceAddress,
     this.bridgeEnabled = false,
+    this.mapEnabled = true,
   });
 
   factory RevaniSettings.fromMap(Map<Object?, Object?> m) => RevaniSettings(
     autoConnect: m['autoConnect'] as bool? ?? true,
     lastDeviceAddress: m['lastDeviceAddress'] as String?,
     bridgeEnabled: m['bridgeEnabled'] as bool? ?? false,
+    mapEnabled: m['mapEnabled'] as bool? ?? true,
   );
 
   final bool autoConnect;
@@ -170,15 +180,23 @@ class RevaniSettings {
   /// USB köprüsü: mesajları simülatöre de gönder (1.7).
   final bool bridgeEnabled;
 
-  RevaniSettings copyWith({bool? autoConnect, bool? bridgeEnabled}) =>
-      RevaniSettings(
-        autoConnect: autoConnect ?? this.autoConnect,
-        lastDeviceAddress: lastDeviceAddress,
-        bridgeEnabled: bridgeEnabled ?? this.bridgeEnabled,
-      );
+  /// Faz 2: ekrana harita karesi gönder.
+  final bool mapEnabled;
+
+  RevaniSettings copyWith({
+    bool? autoConnect,
+    bool? bridgeEnabled,
+    bool? mapEnabled,
+  }) => RevaniSettings(
+    autoConnect: autoConnect ?? this.autoConnect,
+    lastDeviceAddress: lastDeviceAddress,
+    bridgeEnabled: bridgeEnabled ?? this.bridgeEnabled,
+    mapEnabled: mapEnabled ?? this.mapEnabled,
+  );
 
   Map<String, Object?> toMap() => {
     'autoConnect': autoConnect,
     'bridgeEnabled': bridgeEnabled,
+    'mapEnabled': mapEnabled,
   };
 }

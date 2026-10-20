@@ -27,6 +27,9 @@ object RevaniState {
         val gpsSpeed: Int? = null,
         val gpsHeading: Int? = null,
         val mapFps: Double = 0.0,
+        /** Son harita karesinin JPEG boyutu (bayt). */
+        val mapBytes: Int = 0,
+        val mapDemoStyle: Boolean = false,
         val errors: List<String> = emptyList(),
     )
 

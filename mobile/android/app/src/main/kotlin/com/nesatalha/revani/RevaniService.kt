@@ -20,6 +20,8 @@ import com.nesatalha.revani.ble.BleTransport
 import com.nesatalha.revani.ble.Protocol
 import com.nesatalha.revani.link.TcpTransport
 import com.nesatalha.revani.location.LocationSource
+import com.nesatalha.revani.map.MapMath
+import com.nesatalha.revani.map.MapRenderer
 import com.nesatalha.revani.nav.Maneuver
 import com.nesatalha.revani.nav.NavInfo
 import kotlinx.coroutines.CoroutineScope
@@ -47,6 +49,8 @@ class RevaniService : Service() {
     private lateinit var location: LocationSource
     private var lastFixAt = 0L
     private var fakeNavJob: Job? = null
+    private var mapRenderer: MapRenderer? = null
+    private var position: Pair<Double, Double>? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -56,7 +60,7 @@ class RevaniService : Service() {
         startInForeground()
         link = BleTransport(this, scope, onReady = ::onLinkReady, onIncoming = ::onIncoming)
         applyBridgeSetting()
-        location = LocationSource(this, ::onFix)
+        location = LocationSource(this, ::onFix, onPosition = { lat, lon -> position = lat to lon })
         RevaniState.update { it.copy(serviceRunning = true) }
 
         if (hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
@@ -88,6 +92,7 @@ class RevaniService : Service() {
                 }
             }
         }
+        scope.launch { mapLoop() }
         scope.launch {
             RevaniState.status.map { it.bleState }.distinctUntilChanged().collect { updateNotification() }
         }
@@ -138,6 +143,8 @@ class RevaniService : Service() {
     }
 
     override fun onDestroy() {
+        mapRenderer?.close()
+        mapRenderer = null
         bridge?.close()
         bridge = null
         location.stop()
@@ -168,6 +175,42 @@ class RevaniService : Service() {
         lastFixAt = System.currentTimeMillis()
         RevaniState.update { it.copy(gpsSpeed = speedKmh, gpsHeading = headingDeg) }
         send(Protocol.gps(speedKmh, headingDeg))
+    }
+
+    /**
+     * Faz 2: ekran bağlıyken ve navigasyon varken harita karesi üretip parçalar halinde
+     * gönderir. Kare hızı dönüşe yaklaşınca artar (2.1.8).
+     */
+    private suspend fun mapLoop() {
+        var frame = 0
+        var fps = 0.0
+        var lastSent = 0L
+        while (true) {
+            val nav = RevaniState.nav.value
+            delay(MapMath.frameIntervalMs(nav?.distanceM))
+            val st = RevaniState.status.value
+            val linked = st.bleState == BleState.READY || st.bridgeState == "connected"
+            val pos = position
+            if (!settings.mapEnabled || nav == null || !linked || pos == null) continue
+
+            val renderer = mapRenderer ?: try {
+                MapRenderer(this).also {
+                    mapRenderer = it
+                    RevaniState.update { s -> s.copy(mapDemoStyle = it.usingDemoStyle) }
+                }
+            } catch (e: Exception) {
+                RevaniState.error("Harita başlatılamadı: ${e.message}")
+                continue
+            }
+            renderer.render(pos.first, pos.second, (st.gpsHeading ?: 0).toDouble(), st.gpsSpeed ?: 0) { jpeg ->
+                frame = (frame + 1) and 0xFFFF
+                MapMath.chunks(frame, jpeg).forEach(::send)
+                val now = System.currentTimeMillis()
+                if (lastSent != 0L) fps = 0.7 * fps + 0.3 * (1000.0 / (now - lastSent))
+                lastSent = now
+                RevaniState.update { it.copy(mapFps = fps, mapBytes = jpeg.size) }
+            }
+        }
     }
 
     /** Masada telefon olmadan test: Google Maps yerine sahte navigasyon üretir. */

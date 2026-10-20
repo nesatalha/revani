@@ -23,6 +23,9 @@ object Protocol {
     /** Cadde adı için bayt sınırı; ekranda zaten tek satır gösteriliyor. */
     const val MAX_STREET_BYTES = 96
 
+    /** MAP_CHUNK: sonuncu hariç her parçada tam bu kadar JPEG baytı (firmware ile aynı). */
+    const val MAP_CHUNK_DATA = 480
+
     /** STATUS'ta pil ölçülemiyorsa gelen değer. */
     const val BATTERY_UNKNOWN = 0xFF
 
@@ -35,6 +38,16 @@ object Protocol {
             u16(info.etaMin)
             u8(street.size)
             write(street)
+        }
+    }
+
+    fun mapChunk(frame: Int, chunk: Int, chunkCount: Int, data: ByteArray): ByteArray {
+        require(data.size <= MAP_CHUNK_DATA)
+        return message(MAP_CHUNK) {
+            u16(frame and 0xFFFF)
+            u16(chunk)
+            u16(chunkCount)
+            write(data)
         }
     }
 

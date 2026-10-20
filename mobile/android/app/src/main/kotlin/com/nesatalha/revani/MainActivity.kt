@@ -213,5 +213,7 @@ private fun RevaniState.Status.toMap(): Map<String, Any?> = mapOf(
     "gpsSpeed" to gpsSpeed,
     "gpsHeading" to gpsHeading,
     "mapFps" to mapFps,
+    "mapBytes" to mapBytes,
+    "mapDemoStyle" to mapDemoStyle,
     "errors" to errors,
 )
