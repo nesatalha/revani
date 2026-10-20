@@ -1,7 +1,7 @@
 // Revani LVGL simülatörü (macOS, SDL2).
 //
 //   revani_sim [--speed N]                      pencerede sahte veriyle çalışır
-//   revani_sim --bridge [--port 7878] [--shot out.bmp]
+//   revani_sim --bridge [--port 7878] [--shot out.bmp] [--layout top|left|right]
 //                                               telefondan USB köprüsüyle gerçek veri (1.7);
 //                                               `kill -USR1 <pid>` ekran görüntüsünü out.bmp'ye yazar
 //   revani_sim --shot out.bmp [--scene S] [--ms N]
@@ -128,6 +128,7 @@ static void feed_jpeg(const char *path, uint16_t frame) {
 }
 
 static const char *jpeg_path;
+static ui_map_layout_t map_layout = UI_MAP_LAYOUT_DEFAULT;
 
 static int headless(const char *out, const char *scene, uint32_t ms) {
   lv_tick_set_cb(fake_tick);
@@ -188,6 +189,7 @@ static int headless(const char *out, const char *scene, uint32_t ms) {
     ui_proto_init();
     scene_nav(UI_MANEUVER_RIGHT, 0, 180, "Bağdat Cd.", 47);
     if (jpeg_path) feed_jpeg(jpeg_path, 1);
+    ui_map_set_layout(map_layout);
   } else if (!strcmp(scene, "fake")) {
     ui_fake_start(1);
   } else {
@@ -231,6 +233,7 @@ static int windowed(int speedup, int bridge_port, const char *shot) {
   } else {
     ui_fake_start(speedup);
   }
+  ui_map_set_layout(map_layout);
   if (shot) signal(SIGUSR1, on_usr1);
   for (;;) {
     bridge_poll();
@@ -257,6 +260,10 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[i], "--bridge")) bridge_port = bridge_port ? bridge_port : BRIDGE_DEFAULT_PORT;
     else if (!strcmp(argv[i], "--port") && i + 1 < argc) bridge_port = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--jpeg") && i + 1 < argc) jpeg_path = argv[++i];
+    else if (!strcmp(argv[i], "--layout") && i + 1 < argc) {
+      const char *l = argv[++i];
+      map_layout = !strcmp(l, "left") ? UI_MAP_LAYOUT_LEFT : !strcmp(l, "right") ? UI_MAP_LAYOUT_RIGHT : UI_MAP_LAYOUT_TOP;
+    }
     else {
       fprintf(stderr,
               "Kullanım: %s [--speed N] | --bridge [--port P] [--shot out.bmp] |"

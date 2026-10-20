@@ -43,6 +43,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Hız göstergesi **retro** oldu: dış halka analog kadran (çentikler, 20'şer sayılar, turuncu ibre), hız LCD kutusunda 7 segmentli rakamlarla (DSEG7 Classic, OFL). Ölçek **0–120 km/h** (önce 0–140). İç mesafe halkası kadran sayılarının içine alındı (çap 344), harita çapı 328. |
 | 2026-10-20 | Android emülatörüyle sürüş testi (Medium Phone, API 36, Google Play): Extended Controls → Routes ile Kadıköy–Moda rotası oynatıldı, emülatör USB köprüsüyle simülatöre bağlandı. Maps ön plandayken navigasyon bildirimi yayınlamıyor; emülatörde Maps'e bildirim izni gerekti. Sonuç: ok, mesafe (~1 sn gecikme), cadde, hız (Maps ile ±1 km/h) ve heading-up harita doğru. Emülatör konumu hız vermediği için hız artık son iki konumdan da hesaplanıyor. Eksik şablon yüzünden "hafif sağ" düz ok olarak görünüyordu; hafif sağ ve keskin sağ şablonları eklendi, keskin sol aynalanarak üretildi. |
 | 2026-10-20 | Kullanıcı geri bildirimiyle: zoom bir kademe düştü (16 → 14.5); ibre ince çizgi yerine eğri başlı kama oldu; konum işaretçisi merkezin %15 altına indi (telefon kamerayı gidiş yönünde ileri kaydırıyor), önümüzdeki yol daha çok görünüyor. Emülatör sürüşünde doğrulandı. |
+| 2026-10-20 | İbre canlı kırmızı; konum işaretçisi merkezin %22 altına indi; harita üstündeki ok/mesafe kutusu ve cadde şeridi yarı saydam (%50). Kutunun yeri seçilebilir: üstte (varsayılan) veya solda/sağda dar sütun (cadde üstte şerit), `ui_map_set_layout()` / simülatörde `--layout`. Kullanıcı seçimi bekleniyor. Konumdan hesaplanan hız 160 km/h'yi geçerse sıçrama sayılıp atılıyor. |
 
 ---
 
@@ -217,7 +218,7 @@ Ayrıştırıcı `firmware/protocol/` altında; Kotlin (`ProtocolTest`) ve C (`p
 
 ### Dış halka: GPS hızı (OBD gelene kadar)
 
-- **Retro tasarım:** Hunter'ın kendi kadranı gibi analog: 5'erli ince, 20'şer kalın çentik ve sayılar (krem rengi), çentik bandında dışta geniş, içe sivrilen turuncu kama ibre (başı kadranın eğrisini izler, siyah konturlu). Hız sayısı altta LCD kutusunda 7 segmentli rakamlarla (DSEG7), sönük `888` segmentleri arkada görünür.
+- **Retro tasarım:** Hunter'ın kendi kadranı gibi analog: 5'erli ince, 20'şer kalın çentik ve sayılar (krem rengi), çentik bandında dışta geniş, içe sivrilen canlı kırmızı kama ibre (başı kadranın eğrisini izler, siyah konturlu). Hız sayısı altta LCD kutusunda 7 segmentli rakamlarla (DSEG7), sönük `888` segmentleri arkada görünür.
 
 - Ölçek **0–120 km/h** (Hunter 350'nin son hızı ~110–115 km/h).
 - Hız telefonun GPS'inden gelir, genelde saniyede 1 güncellenir. ESP32 değerler arasını **yumuşak animasyonla** doldurur.

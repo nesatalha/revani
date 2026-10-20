@@ -24,7 +24,7 @@ class MapMathTest {
         val lon = 29.0
         val zoom = 16.0
         val ahead = MapMath.MARKER_OFFSET_FRAC * MapMath.SIZE_PX * MapMath.metersPerPixel(zoom, lat)
-        assertEquals(32.4, ahead, 0.5) // 36 px × 0,9 m/px (zoom 16, enlem 41)
+        assertEquals(47.6, ahead, 0.5) // 52.8 px × 0,9 m/px (zoom 16, enlem 41)
         val north = MapMath.cameraTarget(lat, lon, 0.0, zoom)
         assertEquals(lat + ahead / 111_320.0, north.first, 1e-7)
         assertEquals(lon, north.second, 1e-9)

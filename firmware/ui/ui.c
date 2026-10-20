@@ -44,9 +44,13 @@ typedef struct {
   // Harita görünümü (Faz 2)
   lv_obj_t *map_view;
   lv_obj_t *map_img;
+  lv_obj_t *map_box;     // ok + mesafe kutusu (üstte satır, yanda sütun)
   lv_obj_t *map_arrow;
   lv_obj_t *map_dist;
-  lv_obj_t *map_street;
+  lv_obj_t *map_street;  // ayrı şerit
+  ui_map_layout_t map_layout;
+  char map_dist_value[12];
+  const char *map_dist_unit;
   uint32_t map_last_tick;
   bool map_ever;
   bool map_mode;
@@ -397,7 +401,9 @@ void ui_set_nav(const ui_nav_t *nav) {
   format_distance(nav->distance_m, value, sizeof(value), &unit);
   lv_label_set_text(ui.dist_value, value);
   lv_label_set_text(ui.dist_unit, unit);
-  lv_label_set_text_fmt(ui.map_dist, "%s %s", value, unit);
+  lv_strlcpy(ui.map_dist_value, value, sizeof ui.map_dist_value);
+  ui.map_dist_unit = unit;
+  ui_map_set_layout(ui.map_layout);  // mesafe metni yerleşime göre (tek satır / alt alta)
 
   const char *street = nav->street ? nav->street : "";
   if (strcmp(lv_label_get_text(ui.street), street) != 0) {
@@ -479,6 +485,42 @@ static lv_obj_t *make_position_marker(lv_obj_t *parent) {
   return canvas;
 }
 
+// Haritanın üstündeki yarı saydam koyu kutu.
+static lv_obj_t *make_overlay(lv_obj_t *parent) {
+  lv_obj_t *o = lv_obj_create(parent);
+  lv_obj_remove_style_all(o);
+  lv_obj_set_size(o, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_set_style_bg_color(o, color(UI_COLOR_BG), 0);
+  lv_obj_set_style_bg_opa(o, UI_MAP_OVERLAY_OPA, 0);
+  lv_obj_set_style_radius(o, 16, 0);
+  lv_obj_set_style_pad_hor(o, 12, 0);
+  lv_obj_set_style_pad_ver(o, 6, 0);
+  lv_obj_remove_flag(o, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+  return o;
+}
+
+void ui_map_set_layout(ui_map_layout_t layout) {
+  ui.map_layout = layout;
+  lv_obj_t *street_bg = lv_obj_get_parent(ui.map_street);
+  if (layout == UI_MAP_LAYOUT_TOP) {
+    // Üstte tek satır: ok + "180 m", altında cadde
+    lv_obj_set_flex_flow(ui.map_box, LV_FLEX_FLOW_ROW);
+    lv_label_set_text_fmt(ui.map_dist, "%s %s", ui.map_dist_value, ui.map_dist_unit);
+    lv_obj_align(ui.map_box, LV_ALIGN_TOP_MID, 0, 88);
+    lv_obj_set_width(ui.map_street, 240);
+    lv_obj_align(street_bg, LV_ALIGN_TOP_MID, 0, 170);
+  } else {
+    // Yanda dar sütun: ok, sayı, birim alt alta; cadde üstte ince şeritte.
+    // Önümüzdeki yol (ekranın üst-orta kısmı) açık kalır.
+    bool left = layout == UI_MAP_LAYOUT_LEFT;
+    lv_obj_set_flex_flow(ui.map_box, LV_FLEX_FLOW_COLUMN);
+    lv_label_set_text_fmt(ui.map_dist, "%s\n%s", ui.map_dist_value, ui.map_dist_unit);
+    lv_obj_align(ui.map_box, left ? LV_ALIGN_LEFT_MID : LV_ALIGN_RIGHT_MID, left ? 84 : -84, 10);
+    lv_obj_set_width(ui.map_street, 210);
+    lv_obj_align(street_bg, LV_ALIGN_TOP_MID, 0, 98);
+  }
+}
+
 static void build_map_view(lv_obj_t *parent) {
   ui.map_view = make_page(parent);
   lv_obj_add_flag(ui.map_view, LV_OBJ_FLAG_HIDDEN);
@@ -497,29 +539,14 @@ static void build_map_view(lv_obj_t *parent) {
   lv_obj_center(ui.map_img);
   make_position_marker(circle);
 
-  // Üstte koyu kutu: küçük ok, mesafe, cadde (2.2.4)
-  lv_obj_t *pill = lv_obj_create(ui.map_view);
-  lv_obj_remove_style_all(pill);
-  lv_obj_set_size(pill, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-  lv_obj_set_style_bg_color(pill, color(UI_COLOR_BG), 0);
-  lv_obj_set_style_bg_opa(pill, LV_OPA_80, 0);
-  lv_obj_set_style_radius(pill, 18, 0);
-  lv_obj_set_style_pad_hor(pill, 14, 0);
-  lv_obj_set_style_pad_ver(pill, 6, 0);
-  lv_obj_set_flex_flow(pill, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(pill, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_align(pill, LV_ALIGN_TOP_MID, 0, 92);
-
-  lv_obj_t *row = lv_obj_create(pill);
-  lv_obj_remove_style_all(row);
-  lv_obj_set_size(row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-  lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_column(row, 10, 0);
+  // Harita üstü: ok + mesafe kutusu ve cadde şeridi, yarı saydam (2.2.4)
+  ui.map_box = make_overlay(ui.map_view);
+  lv_obj_set_flex_align(ui.map_box, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_pad_gap(ui.map_box, 8, 0);
 
   // Ok tuvali 160 px; küçültme yerleşimi etkilemediği için sabit boyutlu kutuya konur.
   const int32_t arrow_px = 64;
-  lv_obj_t *arrow_box = lv_obj_create(row);
+  lv_obj_t *arrow_box = lv_obj_create(ui.map_box);
   lv_obj_remove_style_all(arrow_box);
   lv_obj_set_size(arrow_box, arrow_px, arrow_px);
   ui.map_arrow = ui_arrow_create(arrow_box);
@@ -527,14 +554,18 @@ static void build_map_view(lv_obj_t *parent) {
   lv_obj_set_style_transform_pivot_x(ui.map_arrow, 0, 0);
   lv_obj_set_style_transform_pivot_y(ui.map_arrow, 0, 0);
 
-  ui.map_dist = make_label(row, &lv_font_montserrat_48, UI_COLOR_FG);
+  ui.map_dist = make_label(ui.map_box, &lv_font_montserrat_48, UI_COLOR_FG);
+  lv_obj_set_style_text_align(ui.map_dist, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_style_text_line_space(ui.map_dist, -14, 0);
 
-  ui.map_street = make_label(pill, &revani_font_30, UI_COLOR_YELLOW);
-  lv_obj_set_width(ui.map_street, 250);
+  lv_obj_t *street_bg = make_overlay(ui.map_view);
+  ui.map_street = make_label(street_bg, &revani_font_30, UI_COLOR_YELLOW);
   lv_obj_set_style_text_align(ui.map_street, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(ui.map_street, LV_LABEL_LONG_DOT);
   lv_obj_set_height(ui.map_street, lv_font_get_line_height(&revani_font_30));
 
+  ui.map_dist_unit = "";
+  ui_map_set_layout(UI_MAP_LAYOUT_DEFAULT);
   lv_timer_create(map_watchdog_cb, 500, NULL);
 }
 

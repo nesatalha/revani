@@ -21,7 +21,7 @@
 // Retro hız göstergesi (analog kadran + LCD rakamlar)
 #define UI_COLOR_RETRO 0xF2E3C2      // eski kadranların krem rengi
 #define UI_COLOR_RETRO_DIM 0x8C826C
-#define UI_COLOR_NEEDLE 0xFF6A1A     // turuncu ibre
+#define UI_COLOR_NEEDLE 0xFF1E1E     // canlı kırmızı ibre
 #define UI_COLOR_LCD_BG 0x0B0B08
 #define UI_COLOR_LCD_GHOST 0x24221A  // sönük segmentler
 
@@ -48,7 +48,9 @@
 #define UI_MAP_TIMEOUT_MS 5000
 // Konum işaretçisi merkezin bu kadar (harita çapının %'si) altında: önümüzdeki yol daha
 // çok görünsün. Telefon kamerayı aynı oranda ileri kaydırır (MapMath.MARKER_OFFSET_FRAC).
-#define UI_MAP_MARKER_OFFSET_PCT 15  // bu süre kare gelmezse büyük oklu görünüme dön
+#define UI_MAP_MARKER_OFFSET_PCT 22
+#define UI_MAP_OVERLAY_OPA LV_OPA_50     // ok/mesafe kutusunun saydamlığı
+#define UI_MAP_LAYOUT_DEFAULT UI_MAP_LAYOUT_TOP  // bu süre kare gelmezse büyük oklu görünüme dön
 
 // Halkaların açısı: alttan 90° boşluk, saat yönünde 270°
 #define UI_RING_START_ANGLE 135

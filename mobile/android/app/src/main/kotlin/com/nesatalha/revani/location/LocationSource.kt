@@ -49,7 +49,9 @@ class LocationSource(
         val p = prev ?: return 0f
         val dt = (loc.elapsedRealtimeNanos - p.elapsedRealtimeNanos) / 1e9f
         if (dt <= 0.2f || dt > 5f) return 0f
-        return p.distanceTo(loc) / dt
+        val mps = p.distanceTo(loc) / dt
+        // Konum sıçraması (rota oynatmanın başa sarması, kötü fix) hız sanılmasın.
+        return if (mps * 3.6f > MAX_PLAUSIBLE_KMH) 0f else mps
     }
 
     @SuppressLint("MissingPermission") // izin servis başlamadan kontrol ediliyor
@@ -74,6 +76,7 @@ class LocationSource(
     companion object {
         private const val INTERVAL_MS = 1_000L
         private const val MIN_SPEED_FOR_HEADING = 5
+        private const val MAX_PLAUSIBLE_KMH = 160f
         private const val NETWORK_INTERVAL_MS = 5_000L
         private const val NETWORK_FALLBACK_AFTER_MS = 5_000L
     }

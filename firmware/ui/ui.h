@@ -47,6 +47,15 @@ void ui_set_battery(uint8_t percent);
 void ui_set_connected(bool connected);
 bool ui_nav_active(void);
 
+// Harita görünümünde ok/mesafe kutusunun yeri.
+typedef enum {
+  UI_MAP_LAYOUT_TOP = 0,   // üstte yatay kutu
+  UI_MAP_LAYOUT_LEFT = 1,  // solda dar sütun, cadde üstte şerit
+  UI_MAP_LAYOUT_RIGHT = 2,
+} ui_map_layout_t;
+
+void ui_map_set_layout(ui_map_layout_t layout);
+
 #ifdef __cplusplus
 }
 #endif
