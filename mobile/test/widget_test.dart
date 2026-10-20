@@ -1,30 +1,35 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:revani/main.dart';
+import 'package:revani/models/status.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('RevaniStatus kanal haritasından okunur', () {
+    final s = RevaniStatus.fromMap({
+      'serviceRunning': true,
+      'bleState': 'ready',
+      'deviceName': 'Revani',
+      'displayBattery': 80,
+      'lastNav': {
+        'maneuver': 8,
+        'roundaboutExit': 2,
+        'distanceM': 120,
+        'etaMin': 9,
+        'street': 'Bağdat Cd.',
+      },
+      'navActive': true,
+      'gpsSpeed': 42,
+      'mapFps': 0.0,
+      'errors': ['hata'],
+    });
+    expect(s.bleState, BleState.ready);
+    expect(s.lastNav!.maneuver, Maneuver.roundabout);
+    expect(s.lastNav!.roundaboutExit, 2);
+    expect(s.errors, ['hata']);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('Bilinmeyen değerlerde varsayılan', () {
+    final s = RevaniStatus.fromMap({'bleState': 'garip'});
+    expect(s.bleState, BleState.idle);
+    expect(s.lastNav, isNull);
+    expect(Maneuver.fromCode(42), Maneuver.straight);
   });
 }

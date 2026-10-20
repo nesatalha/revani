@@ -14,7 +14,7 @@
 | Faz | Durum | Tamamlanan |
 |---|---|---|
 | Faz 0: Hazırlık | 🟨 Devam ediyor | 8 / 10 |
-| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 17 / 36 |
+| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 22 / 36 |
 | Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
@@ -32,6 +32,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | BLE UUID'leri üretildi (bölüm 4). Firmware: PlatformIO `espressif32@6.9.0` + Arduino, LVGL **9.2.2** (kart ve simülatörde aynı sürüm), NimBLE-Arduino 2.x. |
 | 2026-10-20 | Faz 1.1 simülatörde tamamlandı (`firmware/simulator/`, SDL2 + CMake). Türkçe karakterli fontlar Montserrat Medium'dan üretildi (`firmware/ui/fonts/generate.sh`). İç halka `firmware/ui/ui_config.h` içindeki `UI_INNER_RING_ENABLED` ile tek satırda kapatılabilir (1.6.5 için). Cadde adı ekranda tek satır, sığmazsa "…" ile kesiliyor; bu yüzden 1.4.7'ye kısaltma eklendi. |
 | 2026-10-20 | 1.4 Kotlin servisi yazıldı; JVM birim testleri (protokol, bildirim ayrıştırma, kısaltma, simge eşleştirme) geçiyor. **Telefon hazır olmadığı için (0.6) cihazda denenmedi**: 1.4.x adımları derlenip birim testleri geçtiği için işaretlendi, gerçek doğrulama 1.6 testlerinde. Bildirim metni biçimleri tahmini, 1.6.1'de gerçek örneklerle testler genişletilecek. `minSdk` 26. Konum için Play Services yerine `LocationManager`. |
+| 2026-10-20 | 1.5 Flutter arayüzü yazıldı (ana ekran, izinler, eşleştirme, ayarlar, debug). Kanallara `stopScan`, `getSettings`, `getPermissions`, `requestRuntimePermissions` ve masada test için `setFakeNav` eklendi (bölüm 3.2). Çalışma zamanı izinleri paket yerine Kotlin'den isteniyor. Emülatörde denendi: servis foreground (connectedDevice + location) başlıyor, sahte navigasyon debug ekranına akıyor. BLE tarama/bağlanma gerçek telefon ve kart olmadan denenmedi. |
 
 ---
 
@@ -127,8 +128,8 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 
 | Kanal | Tip | Yön | İçerik |
 |---|---|---|---|
-| `revani/control` | MethodChannel | Flutter → Kotlin | `startService`, `stopService`, `scanDevices`, `connect(deviceId)`, `disconnect`, `setSettings(map)`, `openNotificationAccessSettings`, `requestIgnoreBatteryOptimizations` |
-| `revani/status` | EventChannel | Kotlin → Flutter | `{ serviceRunning, bleState, deviceName, displayBattery, lastNav, gpsSpeed, mapFps, errors }` (~2 Hz) |
+| `revani/control` | MethodChannel | Flutter → Kotlin | `startService`, `stopService`, `scanDevices`, `stopScan`, `connect(deviceId)`, `disconnect`, `getSettings`, `setSettings(map)`, `getPermissions`, `requestRuntimePermissions`, `openNotificationAccessSettings`, `requestIgnoreBatteryOptimizations`, `setFakeNav(enabled)` |
+| `revani/status` | EventChannel | Kotlin → Flutter | `{ serviceRunning, bleState, deviceName, deviceAddress, displayBattery, lastNav, navActive, gpsSpeed, gpsHeading, mapFps, errors }` (değişince, en çok ~2 Hz) |
 | `revani/scan` | EventChannel | Kotlin → Flutter | Bulunan cihazlar listesi (tarama sırasında) |
 
 ### 3.3 Klasör yapısı
@@ -300,11 +301,11 @@ Dış halkanın hemen içinde, ince bir halka.
 
 ### 1.5 Flutter arayüzü
 
-- [ ] 1.5.1 `revani/control` MethodChannel ve `revani/status`, `revani/scan` EventChannel'ları (Dart + Kotlin tarafı)
-- [ ] 1.5.2 İzin akışı ekranı: Bluetooth, konum, bildirim erişimi, pil optimizasyonu
-- [ ] 1.5.3 Eşleştirme ekranı: tarama, cihaz seçme, bağlanma
-- [ ] 1.5.4 Ana ekran: servis aç/kapat, bağlantı durumu, ekran pili
-- [ ] 1.5.5 Debug ekranı: son NAV verisi, GPS hızı, hatalar
+- [x] 1.5.1 `revani/control` MethodChannel ve `revani/status`, `revani/scan` EventChannel'ları (Dart + Kotlin tarafı)
+- [x] 1.5.2 İzin akışı ekranı: Bluetooth, konum, bildirim erişimi, pil optimizasyonu
+- [x] 1.5.3 Eşleştirme ekranı: tarama, cihaz seçme, bağlanma
+- [x] 1.5.4 Ana ekran: servis aç/kapat, bağlantı durumu, ekran pili
+- [x] 1.5.5 Debug ekranı: son NAV verisi, GPS hızı, hatalar
 
 ### 1.6 Test
 
