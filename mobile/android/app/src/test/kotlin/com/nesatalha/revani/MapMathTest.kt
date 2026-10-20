@@ -6,15 +6,31 @@ import com.nesatalha.revani.map.MapMath
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MapMathTest {
     @Test
     fun zoomBySpeed() {
-        assertEquals(17.0, MapMath.zoomFor(0), 0.0)
-        assertEquals(17.0, MapMath.zoomFor(30), 0.0)
-        assertEquals(16.0, MapMath.zoomFor(55), 0.001)
-        assertEquals(15.0, MapMath.zoomFor(120), 0.0)
+        assertEquals(16.0, MapMath.zoomFor(0), 0.0)
+        assertEquals(16.0, MapMath.zoomFor(30), 0.0)
+        assertEquals(15.25, MapMath.zoomFor(55), 0.001)
+        assertEquals(14.5, MapMath.zoomFor(120), 0.0)
+    }
+
+    @Test
+    fun cameraIsAheadOfPosition() {
+        val lat = 41.0
+        val lon = 29.0
+        val zoom = 16.0
+        val ahead = MapMath.MARKER_OFFSET_FRAC * MapMath.SIZE_PX * MapMath.metersPerPixel(zoom, lat)
+        assertEquals(32.4, ahead, 0.5) // 36 px × 0,9 m/px (zoom 16, enlem 41)
+        val north = MapMath.cameraTarget(lat, lon, 0.0, zoom)
+        assertEquals(lat + ahead / 111_320.0, north.first, 1e-7)
+        assertEquals(lon, north.second, 1e-9)
+        val east = MapMath.cameraTarget(lat, lon, 90.0, zoom)
+        assertEquals(lat, east.first, 1e-9)
+        assertTrue(east.second > lon)
     }
 
     @Test

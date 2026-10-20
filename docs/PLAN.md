@@ -42,6 +42,7 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | 2.3.1 için simülatör ön testi (S22 + USB köprüsü, içeride, araç kullanılmadan): gerçek MapTiler haritası simülatörde görünüyor, ok/mesafe/cadde Maps ile aynı; dönüşe 100 m kala ~2.5 kare/sn, kare ~2.6 KB (zoom 17). Hareket hâlinde yön dönmesi ve kare hızı kart ve gerçek sürüşle doğrulanacak. |
 | 2026-10-20 | Hız göstergesi **retro** oldu: dış halka analog kadran (çentikler, 20'şer sayılar, turuncu ibre), hız LCD kutusunda 7 segmentli rakamlarla (DSEG7 Classic, OFL). Ölçek **0–120 km/h** (önce 0–140). İç mesafe halkası kadran sayılarının içine alındı (çap 344), harita çapı 328. |
 | 2026-10-20 | Android emülatörüyle sürüş testi (Medium Phone, API 36, Google Play): Extended Controls → Routes ile Kadıköy–Moda rotası oynatıldı, emülatör USB köprüsüyle simülatöre bağlandı. Maps ön plandayken navigasyon bildirimi yayınlamıyor; emülatörde Maps'e bildirim izni gerekti. Sonuç: ok, mesafe (~1 sn gecikme), cadde, hız (Maps ile ±1 km/h) ve heading-up harita doğru. Emülatör konumu hız vermediği için hız artık son iki konumdan da hesaplanıyor. Eksik şablon yüzünden "hafif sağ" düz ok olarak görünüyordu; hafif sağ ve keskin sağ şablonları eklendi, keskin sol aynalanarak üretildi. |
+| 2026-10-20 | Kullanıcı geri bildirimiyle: zoom bir kademe düştü (16 → 14.5); ibre ince çizgi yerine eğri başlı kama oldu; konum işaretçisi merkezin %15 altına indi (telefon kamerayı gidiş yönünde ileri kaydırıyor), önümüzdeki yol daha çok görünüyor. Emülatör sürüşünde doğrulandı. |
 
 ---
 
@@ -216,7 +217,7 @@ Ayrıştırıcı `firmware/protocol/` altında; Kotlin (`ProtocolTest`) ve C (`p
 
 ### Dış halka: GPS hızı (OBD gelene kadar)
 
-- **Retro tasarım:** Hunter'ın kendi kadranı gibi analog: 5'erli ince, 20'şer kalın çentik ve sayılar (krem rengi), çentik bandında turuncu ibre. Hız sayısı altta LCD kutusunda 7 segmentli rakamlarla (DSEG7), sönük `888` segmentleri arkada görünür.
+- **Retro tasarım:** Hunter'ın kendi kadranı gibi analog: 5'erli ince, 20'şer kalın çentik ve sayılar (krem rengi), çentik bandında dışta geniş, içe sivrilen turuncu kama ibre (başı kadranın eğrisini izler, siyah konturlu). Hız sayısı altta LCD kutusunda 7 segmentli rakamlarla (DSEG7), sönük `888` segmentleri arkada görünür.
 
 - Ölçek **0–120 km/h** (Hunter 350'nin son hızı ~110–115 km/h).
 - Hız telefonun GPS'inden gelir, genelde saniyede 1 güncellenir. ESP32 değerler arasını **yumuşak animasyonla** doldurur.
@@ -372,7 +373,7 @@ Telefondaki uygulama, BLE'ye gönderdiği **aynı mesaj baytlarını** USB kablo
 - [x] 2.1.2 MapTiler ücretsiz hesabı aç, API anahtarı al
 - [x] 2.1.3 Koyu, sade bir harita stili seç (MapTiler `streets-v2-dark`; `basic-v2-dark` çok soluktu. Güneşte okunabilirlik 3.5.1'de, stil `MapRenderer.kt`'de tek satır)
 - [x] 2.1.4 `MapRenderer`: `MapSnapshotter` ile 240×240 görüntü (merkez GPS, yön GPS)
-- [x] 2.1.5 Hıza göre zoom (yavaşta 17, hızlıda 15)
+- [x] 2.1.5 Hıza göre zoom (yavaşta 16, hızlıda 14.5; ilk değerler 17/15 fazla yakındı)
 - [x] 2.1.6 JPEG kalite ~60, hedef 8–15 KB
 - [x] 2.1.7 Parçalara bölüp `MAP_CHUNK` ile gönder
 - [x] 2.1.8 Kare hızı: normalde 1/sn, dönüşe 100 m kala 2–3/sn

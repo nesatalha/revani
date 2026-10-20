@@ -12,8 +12,8 @@ import org.maplibre.android.snapshotter.MapSnapshotter
 import java.io.ByteArrayOutputStream
 
 /**
- * Ekranın ortası için 240×240 harita karesi üretir (2.1.4): merkez GPS konumu,
- * yön yukarıda (heading-up). Ana iş parçacığından çağrılmalı.
+ * Ekranın ortası için 240×240 harita karesi üretir (2.1.4): yön yukarıda (heading-up),
+ * konum merkezin biraz altında (önümüzdeki yol daha çok görünsün). Ana iş parçacığından çağrılmalı.
  *
  * Stil: MapTiler anahtarı varsa koyu sade stil, yoksa MapLibre demo stili
  * (sadece ülke sınırları; akışı denemek için).
@@ -38,10 +38,12 @@ class MapRenderer(context: Context) {
     fun render(lat: Double, lon: Double, bearingDeg: Double, speedKmh: Int, onJpeg: (ByteArray) -> Unit): Boolean {
         if (busy) return false
         busy = true
+        val zoom = MapMath.zoomFor(speedKmh)
+        val (camLat, camLon) = MapMath.cameraTarget(lat, lon, bearingDeg, zoom)
         snapshotter.setCameraPosition(
             CameraPosition.Builder()
-                .target(LatLng(lat, lon))
-                .zoom(MapMath.zoomFor(speedKmh))
+                .target(LatLng(camLat, camLon))
+                .zoom(zoom)
                 .bearing(bearingDeg)
                 .tilt(0.0)
                 .build(),

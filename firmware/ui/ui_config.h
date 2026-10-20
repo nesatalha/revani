@@ -30,9 +30,10 @@
 #define UI_SPEED_MIN_KMH 10        // altı titrer, halka 0'da kalır
 #define UI_SPEED_ANIM_MS 1000      // GPS ~1 Hz; iki değer arası doğrusal dolar
 #define UI_GPS_TIMEOUT_MS 3000     // bu süre GPS gelmezse halka gri
-#define UI_NEEDLE_OUTER_R 222       // ibre çentik bandının üstünden geçer
-#define UI_NEEDLE_INNER_R 196
-#define UI_NEEDLE_WIDTH 6
+#define UI_NEEDLE_OUTER_R 224       // kama ibre: dış kenar (eğri) bu yarıçapta
+#define UI_NEEDLE_INNER_R 182       // sivri uç
+#define UI_NEEDLE_HALF_DEG 5.0f     // başın yarı açısı (~39 px genişlik)
+#define UI_NEEDLE_HEAD 10           // kadran eğrisini izleyen baş bandının kalınlığı
 
 // İç halka: dönüşe kalan mesafe
 #define UI_INNER_RING_RANGE_M 500  // son 500 m'de dolar, daha uzaktaysa gizli
@@ -44,7 +45,10 @@
 
 // Harita (Faz 2): telefondan gelen kare bu çapa büyütülüp daire içinde gösterilir
 #define UI_MAP_DIAMETER 328
-#define UI_MAP_TIMEOUT_MS 5000  // bu süre kare gelmezse büyük oklu görünüme dön
+#define UI_MAP_TIMEOUT_MS 5000
+// Konum işaretçisi merkezin bu kadar (harita çapının %'si) altında: önümüzdeki yol daha
+// çok görünsün. Telefon kamerayı aynı oranda ileri kaydırır (MapMath.MARKER_OFFSET_FRAC).
+#define UI_MAP_MARKER_OFFSET_PCT 15  // bu süre kare gelmezse büyük oklu görünüme dön
 
 // Halkaların açısı: alttan 90° boşluk, saat yönünde 270°
 #define UI_RING_START_ANGLE 135

@@ -16,8 +16,9 @@
 typedef struct {
   // Ortak: halkalar ve hız
   lv_obj_t *dial;    // retro analog kadran: çentikler ve 20'şer sayılar
-  lv_obj_t *needle;  // turuncu ibre
-  lv_point_precise_t needle_pts[2];
+  lv_obj_t *needle;  // turuncu kama ibre (kendisi çizer, bkz. needle_draw_cb)
+  float needle_angle;  // derece
+  lv_area_t needle_area;
   lv_obj_t *speed_panel;  // LCD rakamlı hız kutusu
   lv_obj_t *speed_ghost;  // sönük "888" segmentleri
   lv_obj_t *speed_value;
@@ -99,16 +100,79 @@ static lv_obj_t *make_ring(lv_obj_t *parent, int32_t size, int32_t width, int32_
 
 // ---------------------------------------------------------------- dış halka
 
-// İbreyi kadranın çentik bandına çizer (merkezden değil: ortadaki harita/ok kapanmasın).
+// İbre: dışta geniş, içe doğru sivrilen kama. Gövde tek üçgen, baş kadranın eğrisini
+// izleyen kalın bir yay bandı ("eğri kenarlı üçgen"). Merkezden değil çentik bandından
+// çizilir, ortadaki harita/ok kapanmasın.
+static void needle_point(float deg, float r, lv_point_precise_t *p) {
+  float a = deg * 3.14159265f / 180.0f;
+  p->x = CENTER + (int32_t)lroundf(cosf(a) * r);
+  p->y = CENTER + (int32_t)lroundf(sinf(a) * r);
+}
+
+static void draw_wedge(lv_layer_t *layer, float deg, float half_deg, float r_out, float r_in, lv_color_t c) {
+  // Önce baş (yay bandı), sonra gövde: üçgenin dış kenarı bandın içinde kalır, dikiş görünmez.
+  lv_draw_arc_dsc_t arc;
+  lv_draw_arc_dsc_init(&arc);
+  arc.color = c;
+  arc.center.x = CENTER;
+  arc.center.y = CENTER;
+  arc.radius = (uint16_t)r_out;
+  arc.width = UI_NEEDLE_HEAD;
+  arc.start_angle = deg - half_deg;
+  arc.end_angle = deg + half_deg;
+  lv_draw_arc(layer, &arc);
+
+  lv_draw_triangle_dsc_t t;
+  lv_draw_triangle_dsc_init(&t);
+  t.bg_color = c;
+  t.bg_opa = LV_OPA_COVER;
+  // Kenarlar bandın iç köşelerinden geçip dış yarıçapa kadar uzar: köşede basamak kalmaz.
+  needle_point(deg, r_in, &t.p[0]);
+  for (int i = 1; i <= 2; i++) {
+    lv_point_precise_t corner;
+    needle_point(i == 1 ? deg - half_deg : deg + half_deg, r_out - UI_NEEDLE_HEAD, &corner);
+    float scale = (r_out - r_in) / (r_out - UI_NEEDLE_HEAD - r_in);
+    t.p[i].x = t.p[0].x + (int32_t)lroundf((corner.x - t.p[0].x) * scale);
+    t.p[i].y = t.p[0].y + (int32_t)lroundf((corner.y - t.p[0].y) * scale);
+  }
+  lv_draw_triangle(layer, &t);
+}
+
+static void needle_draw_cb(lv_event_t *e) {
+  lv_layer_t *layer = lv_event_get_layer(e);
+  float a = ui.needle_angle;
+  // Önce siyah kontur (haritanın ve sayıların üstünde seçilsin), sonra renkli kama
+  draw_wedge(layer, a, UI_NEEDLE_HALF_DEG + 1.0f, UI_NEEDLE_OUTER_R + 2, UI_NEEDLE_INNER_R - 4, color(UI_COLOR_BG));
+  lv_color_t c = color(ui.gps_lost ? UI_COLOR_DIM : UI_COLOR_NEEDLE);
+  draw_wedge(layer, a, UI_NEEDLE_HALF_DEG, UI_NEEDLE_OUTER_R, UI_NEEDLE_INNER_R, c);
+}
+
+// Kamanın kapladığı dikdörtgen (yalnız orası yeniden çizilsin).
+static void needle_bounds(float deg, lv_area_t *out) {
+  const float half = UI_NEEDLE_HALF_DEG + 1.0f, r_out = UI_NEEDLE_OUTER_R + 2, r_in = UI_NEEDLE_INNER_R - 4;
+  lv_point_precise_t p[4];
+  needle_point(deg, r_in, &p[0]);
+  needle_point(deg - half, r_out, &p[1]);
+  needle_point(deg + half, r_out, &p[2]);
+  needle_point(deg, r_out, &p[3]);  // dış yayın ortası en dışta
+  *out = (lv_area_t){p[0].x, p[0].y, p[0].x, p[0].y};
+  for (int i = 1; i < 4; i++) {
+    out->x1 = LV_MIN(out->x1, p[i].x);
+    out->y1 = LV_MIN(out->y1, p[i].y);
+    out->x2 = LV_MAX(out->x2, p[i].x);
+    out->y2 = LV_MAX(out->y2, p[i].y);
+  }
+  lv_area_increase(out, 3, 3);
+}
+
 static void set_needle(int32_t speed_x10) {
   float frac = (float)speed_x10 / (UI_SPEED_MAX_KMH * 10);
-  float a = (UI_RING_START_ANGLE + frac * UI_RING_SWEEP) * 3.14159265f / 180.0f;
-  float c = cosf(a), sn = sinf(a);
-  ui.needle_pts[0].x = CENTER + (int32_t)lroundf(c * UI_NEEDLE_OUTER_R);
-  ui.needle_pts[0].y = CENTER + (int32_t)lroundf(sn * UI_NEEDLE_OUTER_R);
-  ui.needle_pts[1].x = CENTER + (int32_t)lroundf(c * UI_NEEDLE_INNER_R);
-  ui.needle_pts[1].y = CENTER + (int32_t)lroundf(sn * UI_NEEDLE_INNER_R);
-  lv_line_set_points(ui.needle, ui.needle_pts, 2);
+  float deg = UI_RING_START_ANGLE + frac * UI_RING_SWEEP;
+  if (deg == ui.needle_angle && ui.needle_area.x2 != 0) return;
+  lv_obj_invalidate_area(ui.needle, &ui.needle_area);
+  ui.needle_angle = deg;
+  needle_bounds(deg, &ui.needle_area);
+  lv_obj_invalidate_area(ui.needle, &ui.needle_area);
 }
 
 // LCD kutusu sağa dayalı 3 hane; "!" DSEG'de rakam genişliğinde boşluk.
@@ -132,7 +196,7 @@ static void speed_anim_cb(void *var, int32_t v) {
 }
 
 static void apply_gps_style(void) {
-  lv_obj_set_style_line_color(ui.needle, color(ui.gps_lost ? UI_COLOR_DIM : UI_COLOR_NEEDLE), 0);
+  lv_obj_invalidate_area(ui.needle, &ui.needle_area);
   lv_obj_set_style_text_color(ui.speed_value, color(ui.gps_lost ? UI_COLOR_DIM : UI_COLOR_RETRO), 0);
 }
 
@@ -195,10 +259,11 @@ static void build_dial(lv_obj_t *parent) {
   lv_obj_set_style_text_font(d, &lv_font_montserrat_20, LV_PART_INDICATOR);
   lv_obj_set_style_text_color(d, color(UI_COLOR_RETRO), LV_PART_INDICATOR);
 
-  ui.needle = lv_line_create(parent);
-  lv_obj_set_pos(ui.needle, 0, 0);
-  lv_obj_set_style_line_width(ui.needle, UI_NEEDLE_WIDTH, 0);
-  lv_obj_set_style_line_rounded(ui.needle, true, 0);
+  ui.needle = lv_obj_create(parent);
+  lv_obj_remove_style_all(ui.needle);
+  lv_obj_set_size(ui.needle, UI_SCREEN_SIZE, UI_SCREEN_SIZE);
+  lv_obj_remove_flag(ui.needle, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_add_event_cb(ui.needle, needle_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
   set_needle(0);
 }
 
@@ -387,7 +452,7 @@ void ui_show_map(lv_draw_buf_t *buf) {
   map_watchdog_cb(NULL);
 }
 
-// Ortadaki konum işaretçisi: yukarı bakan sarı üçgen (harita yön yukarıda).
+// Konum işaretçisi: yukarı bakan sarı üçgen (harita yön yukarıda), merkezin biraz altında.
 static lv_obj_t *make_position_marker(lv_obj_t *parent) {
   const int32_t s = 30;
   lv_obj_t *canvas = lv_canvas_create(parent);
@@ -410,7 +475,7 @@ static lv_obj_t *make_position_marker(lv_obj_t *parent) {
     lv_draw_triangle(&layer, &t);
   }
   lv_canvas_finish_layer(canvas, &layer);
-  lv_obj_center(canvas);
+  lv_obj_align(canvas, LV_ALIGN_CENTER, 0, UI_MAP_DIAMETER * UI_MAP_MARKER_OFFSET_PCT / 100);
   return canvas;
 }
 
