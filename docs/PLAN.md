@@ -13,8 +13,8 @@
 
 | Faz | Durum | Tamamlanan |
 |---|---|---|
-| Faz 0: Hazırlık | 🟨 Devam ediyor | 6 / 10 |
-| Faz 1: Navigasyon MVP | ⬜ Başlamadı | 0 / 36 |
+| Faz 0: Hazırlık | 🟨 Devam ediyor | 8 / 10 |
+| Faz 1: Navigasyon MVP | 🟨 Devam ediyor | 7 / 36 |
 | Faz 2: Ortaya harita | ⬜ Başlamadı | 0 / 14 |
 | Faz 3: Motora takma | ⬜ Başlamadı | 0 / 24 |
 | Faz 4: Müzik ve arama | ⬜ Başlamadı | 0 / 7 |
@@ -29,6 +29,9 @@ Durum simgeleri: ⬜ Başlamadı · 🟨 Devam ediyor · ✅ Tamamlandı · ⏸�
 | 2026-10-20 | Plan oluşturuldu. Mimari: Flutter arayüz + Kotlin servis. |
 | 2026-10-20 | Dış halka OBD gelene kadar **GPS hızını** gösterecek. Dönüşe kalan mesafe **ince iç halkaya** taşındı. İç halkanın gerekli olup olmadığına yol testinde karar verilecek (adım 1.6.5). |
 | 2026-10-20 | Paket adı `com.nesatalha.revani` olarak belirlendi. `sdl2`, `cmake` ve PlatformIO Core (CLI) Homebrew ile kuruldu. VS Code şu an `~/Downloads` içinde; `/Applications`'a taşıyıp PlatformIO eklentisini kurmak isteğe bağlı (CLI derleme için yeterli). `flutter doctor`: Android lisansları kabul edilmemiş (`flutter doctor --android-licenses`). |
+
+| 2026-10-20 | BLE UUID'leri üretildi (bölüm 4). Firmware: PlatformIO `espressif32@6.9.0` + Arduino, LVGL **9.2.2** (kart ve simülatörde aynı sürüm), NimBLE-Arduino 2.x. |
+| 2026-10-20 | Faz 1.1 simülatörde tamamlandı (`firmware/simulator/`, SDL2 + CMake). Türkçe karakterli fontlar Montserrat Medium'dan üretildi (`firmware/ui/fonts/generate.sh`). İç halka `firmware/ui/ui_config.h` içindeki `UI_INNER_RING_ENABLED` ile tek satırda kapatılabilir (1.6.5 için). Cadde adı ekranda tek satır, sığmazsa "…" ile kesiliyor; bu yüzden 1.4.7'ye kısaltma eklendi. |
 
 ---
 
@@ -167,9 +170,11 @@ revani/
 
 | | Yön | Özellik |
 |---|---|---|
-| Servis | | UUID projede üretilecek |
-| RX karakteristiği | Android → ESP32 | Write Without Response |
-| TX karakteristiği | ESP32 → Android | Notify |
+| Servis | | `e1510001-07a6-4fc4-b4b4-6d26881dab6c` |
+| RX karakteristiği | Android → ESP32 | `e1510002-07a6-4fc4-b4b4-6d26881dab6c` · Write Without Response |
+| TX karakteristiği | ESP32 → Android | `e1510003-07a6-4fc4-b4b4-6d26881dab6c` · Notify |
+
+UUID'ler firmware'de `firmware/src/ble_uuids.h` içinde; Kotlin tarafında da aynı değerler kullanılmalı.
 
 **Bağlantı ayarları:** `requestMtu(517)`, `PHY_LE_2M` (destekleniyorsa), `CONNECTION_PRIORITY_HIGH`
 
@@ -245,8 +250,8 @@ Dış halkanın hemen içinde, ince bir halka.
 - [ ] 0.6 Android cihazda geliştirici seçenekleri ve USB hata ayıklamayı aç
 - [x] 0.7 Repo klasör yapısını oluştur (bölüm 3.3)
 - [x] 0.8 `mobile/` altında Flutter projesini oluştur (`flutter create --org com.nesatalha --platforms android --project-name revani mobile`)
-- [ ] 0.9 `firmware/` altında PlatformIO projesini oluştur
-- [ ] 0.10 BLE servis ve karakteristik UUID'lerini üret, bölüm 4'e yaz
+- [x] 0.9 `firmware/` altında PlatformIO projesini oluştur
+- [x] 0.10 BLE servis ve karakteristik UUID'lerini üret, bölüm 4'e yaz
 
 ---
 
@@ -257,13 +262,13 @@ Dış halkanın hemen içinde, ince bir halka.
 
 ### 1.1 Ekran arayüzü (simülatörde, kart gelmeden)
 
-- [ ] 1.1.1 LVGL simülatörünü 480×480, dairesel maskeyle kur
-- [ ] 1.1.2 Navigasyon ekranı: ok, mesafe, cadde adı, GPS hızı
-- [ ] 1.1.3 Dış halka: GPS hız göstergesi (0–140 km/h, yumuşatmalı animasyon, 10 km/h altında 0, GPS yoksa gri)
-- [ ] 1.1.4 Bekleme ekranı: saat, pil, "telefon bekleniyor"
-- [ ] 1.1.5 Ok ikonları: düz, hafif/normal/keskin sağ-sol, U dönüşü, dönel kavşak, varış
-- [ ] 1.1.6 Sahte veri üreteci (hız dalgalanması, mesafe 500 → 0, ok değişimi)
-- [ ] 1.1.7 İç halka: dönüşe kalan mesafe (500 m → 0, son 100 m'de sarı, navigasyon yoksa gizli)
+- [x] 1.1.1 LVGL simülatörünü 480×480, dairesel maskeyle kur
+- [x] 1.1.2 Navigasyon ekranı: ok, mesafe, cadde adı, GPS hızı
+- [x] 1.1.3 Dış halka: GPS hız göstergesi (0–140 km/h, yumuşatmalı animasyon, 10 km/h altında 0, GPS yoksa gri)
+- [x] 1.1.4 Bekleme ekranı: saat, pil, "telefon bekleniyor"
+- [x] 1.1.5 Ok ikonları: düz, hafif/normal/keskin sağ-sol, U dönüşü, dönel kavşak, varış
+- [x] 1.1.6 Sahte veri üreteci (hız dalgalanması, mesafe 500 → 0, ok değişimi)
+- [x] 1.1.7 İç halka: dönüşe kalan mesafe (500 m → 0, son 100 m'de sarı, navigasyon yoksa gizli)
 
 ### 1.2 Kart geldiğinde
 
@@ -287,7 +292,7 @@ Dış halkanın hemen içinde, ince bir halka.
 - [ ] 1.4.4 `DashLink`: kopunca üstel beklemeyle yeniden bağlanma
 - [ ] 1.4.5 `Protocol.kt`: mesaj kodlama (NAV, NAV_END, GPS, TIME)
 - [ ] 1.4.6 `NavNotificationReader`: `com.google.android.apps.maps` bildirimlerini dinle
-- [ ] 1.4.7 Bildirimden mesafe ve cadde adını ayrıştır
+- [ ] 1.4.7 Bildirimden mesafe ve cadde adını ayrıştır (uzun adları kısalt: Caddesi → Cd., Sokağı → Sk., Bulvarı → Bulv.)
 - [ ] 1.4.8 `ManeuverMatcher`: bildirimin büyük simgesinden manevra tipini çıkar (küçültme + şablon karşılaştırma)
 - [ ] 1.4.9 Navigasyon bildirimi kaybolunca `NAV_END` gönder
 - [ ] 1.4.10 `LocationSource`: GPS hızı ve yönü, 1 Hz `GPS` mesajı
